@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/item_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+item_id = "stone"
+display_name = "Stone"
+description = "Dense stone collected from exposed rock."
+icon_path = ""
+stack_size = 99
+weight = 0.8
+item_type = 0
+rarity = 0
+sell_price = 1
