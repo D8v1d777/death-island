@@ -403,9 +403,11 @@ func _get_player() -> Node:
 
 func _get_game_world() -> Node:
 	var current = GameManagerGlobal.get_current_scene()
-	if current:
-		return current.get_node_or_null("GameWorld")
-	return null
+	if current == null:
+		return null
+	if current.name == "GameWorld" or current.scene_file_path.ends_with("GameWorld.tscn"):
+		return current
+	return current.get_node_or_null("GameWorld")
 
 func _save_list_updated() -> void:
 	save_list_updated.emit()
