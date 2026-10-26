@@ -26,7 +26,7 @@ func _ready() -> void:
 	# Ensure save directory exists
 	var dir = DirAccess.open(save_directory)
 	if not dir:
-		DirAccess.make_dir_recursive_absolute(save_directory)
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(save_directory))
 
 	# Start auto-save timer
 	_auto_save_timer = auto_save_interval
@@ -88,7 +88,7 @@ func load_game(slot: int) -> Dictionary:
 func delete_save(slot: int) -> void:
 	var path = _get_save_path(slot)
 	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 		_save_list_updated()
 
 func list_saves() -> Array[Dictionary]:
@@ -157,7 +157,7 @@ func _gather_save_data(custom_data: Dictionary) -> Dictionary:
 	var data = {
 		"version": SAVE_VERSION,
 		"timestamp": Time.get_unix_time_from_system(),
-		"scene_path": GameManagerGlobal.current_scene_name,
+		"scene_path": GameManagerGlobal.get_current_scene().scene_file_path if GameManagerGlobal.get_current_scene() else GameManagerGlobal.initial_scene,
 		"player": {},
 		"world": {},
 		"inventory": {},
