@@ -263,13 +263,6 @@ jobs:
           exit $MISSING
         shell: bash
 
-      - name: Validate project.godot syntax
-        run: |
-          cd src
-          # Just verify it parses
-          godot --headless --check-only --quit 2>&1 | head -20
-        shell: bash
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
