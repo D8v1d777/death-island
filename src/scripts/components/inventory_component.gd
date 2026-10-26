@@ -20,10 +20,11 @@ func can_add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1)
 	if item_id.is_empty() or count <= 0 or weight_per_unit < 0.0:
 		return false
 	var current_count = int(_items.get(item_id, 0))
+	var effective_weight = float(_item_weights.get(item_id, weight_per_unit)) if current_count > 0 else weight_per_unit
 	var new_slot = 0 if current_count > 0 else 1
 	if get_used_slots() + new_slot > max_slots:
 		return false
-	return get_current_weight() + float(count) * weight_per_unit <= max_weight + 0.0001
+	return get_current_weight() + float(count) * effective_weight <= max_weight + 0.0001
 
 func add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1) -> bool:
 	if not can_add_item(item_id, count, weight_per_unit):
@@ -32,9 +33,10 @@ func add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1) -> 
 		return false
 
 	var current_count = int(_items.get(item_id, 0))
+	var effective_weight = float(_item_weights.get(item_id, weight_per_unit)) if current_count > 0 else weight_per_unit
 
 	_items[item_id] = current_count + count
-	_item_weights[item_id] = weight_per_unit
+	_item_weights[item_id] = effective_weight
 	inventory_changed.emit()
 	item_added.emit(item_id, count)
 	return true
