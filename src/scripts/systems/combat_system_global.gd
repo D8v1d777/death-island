@@ -26,21 +26,22 @@ func calculate_stamina_cost(base_cost: float, weapon_weight: float, skill_level:
 func apply_damage(attacker: Node, defender: Node, base_damage: float, armor: float = 0.0, crit_chance: float = BASE_CRIT_CHANCE) -> Dictionary:
 	var is_crit = roll_critical(crit_chance)
 	var final_damage = calculate_damage(base_damage, armor, is_crit)
-
 	var health_comp = defender.get_node_or_null("HealthComponent")
-	if health_comp:
+	var was_dead = health_comp.is_dead() if health_comp else true
+	if health_comp and not was_dead:
 		health_comp.take_damage(final_damage, attacker)
-
 		if health_comp.is_dead():
 			entity_defeated.emit(defender, attacker)
 
-	hit_dealt.emit(attacker, defender, final_damage, is_crit)
-	hit_received.emit(defender, attacker, final_damage)
+	if not was_dead:
+		hit_dealt.emit(attacker, defender, final_damage, is_crit)
+		hit_received.emit(defender, attacker, final_damage)
 
 	return {
-		"damage": final_damage,
-		"is_critical": is_crit,
-		"killed": health_comp.is_dead() if health_comp else false
+		"damage": final_damage if not was_dead else 0.0,
+		"is_critical": is_crit if not was_dead else false,
+		"killed": health_comp.is_dead() if health_comp else false,
+		"already_dead": was_dead
 	}
 
 func start_combat(attacker: Node, defender: Node) -> void:
