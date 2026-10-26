@@ -15,7 +15,7 @@ signal level_up(level: int)
 @export var mouse_sensitivity: float = 0.002
 @export var interaction_range: float = 3.0
 
-@onready var camera: Camera3D = $Camera3D
+@onready var camera: Camera3D = $CameraPivot/Camera3D
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var health_comp: HealthComponent = $HealthComponent
 @onready var inventory_comp: InventoryComponent = $InventoryComponent
