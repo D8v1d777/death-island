@@ -64,7 +64,9 @@ func _physics_process(delta: float) -> void:
 	_update_interaction_target()
 	if InputManagerGlobal.is_action_just_pressed("interact"):
 		_try_interact()
-	if InputManagerGlobal.is_action_just_pressed("attack_light") or InputManagerGlobal.is_action_just_pressed("attack_heavy"):
+	var light_attack_pressed = InputManagerGlobal.is_action_just_pressed("attack_light")
+	var heavy_attack_pressed = InputManagerGlobal.is_action_just_pressed("attack_heavy")
+	if light_attack_pressed or heavy_attack_pressed:
 		_try_attack()
 	_attack_cooldown = max(0.0, _attack_cooldown - delta)
 
@@ -108,7 +110,7 @@ func _handle_movement(delta: float) -> void:
 		right.y = 0
 		right = right.normalized()
 
-		var move_dir = (forward * input_dir.z + right * input_dir.x).normalized()
+		var move_dir = (forward * -input_dir.z + right * input_dir.x).normalized()
 
 		var speed = move_speed
 		if _is_sprinting and survival_comp.stamina > 0:
