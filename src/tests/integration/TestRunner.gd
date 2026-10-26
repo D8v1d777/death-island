@@ -99,6 +99,49 @@ func _test_save_load_api_presence() -> bool:
 			return false
 	return true
 
+func _test_inventory_invariants() -> bool:
+	var inventory_script = ResourceLoader.load("res://scripts/components/inventory_component.gd")
+	if inventory_script == null:
+		push_error("InventoryComponent script failed to load")
+		return false
+	var inventory = inventory_script.new()
+	inventory.max_slots = 2
+	inventory.max_weight = 1.0
+	root.add_child(inventory)
+	var added_wood = inventory.add_item("wood", 2, 0.2)
+	var weight_ok = abs(inventory.get_current_weight() - 0.4) < 0.0001
+	var negative_add_rejected = not inventory.add_item("wood", -1, 0.2)
+	var negative_remove_rejected = not inventory.remove_item("wood", -1)
+	var overweight_rejected = not inventory.add_item("stone", 10, 0.2)
+	var added_stone = inventory.add_item("stone", 1, 0.2)
+	var extra_slot_rejected = not inventory.add_item("meat", 1, 0.1)
+	inventory.free()
+	return added_wood and weight_ok and negative_add_rejected and negative_remove_rejected and overweight_rejected and added_stone and extra_slot_rejected
+
+func _test_crafting_batch_invariants() -> bool:
+	var recipe = CraftingSystemGlobal.get_recipe("stone_axe")
+	if recipe == null:
+		push_error("stone_axe recipe resource did not load")
+		return false
+	if not CraftingSystemGlobal.is_recipe_known("stone_axe"):
+		CraftingSystemGlobal.learn_recipe("stone_axe")
+	var inventory := {"wood": 3, "stone": 2}
+	var result = CraftingSystemGlobal.craft("stone_axe", inventory)
+	if not result.get("success", false):
+		push_error("Valid stone axe craft was rejected")
+		return false
+	if inventory.has("wood") or inventory.has("stone"):
+		push_error("Craft did not consume the exact ingredients")
+		return false
+	if result.get("result_item", "") != "stone_axe" or int(result.get("count", 0)) != 1:
+		push_error("Craft returned the wrong output")
+		return false
+
+	var insufficient_batch := {"wood": 3, "stone": 2}
+	var before := insufficient_batch.duplicate()
+	var rejected = CraftingSystemGlobal.craft("stone_axe", insufficient_batch, 2)
+	return not rejected.get("success", true) and insufficient_batch == before
+
 func _test_save_load_roundtrip() -> bool:
 	var original_directory: String = SaveManagerGlobal.save_directory
 	var test_directory := "user://test_saves/"
@@ -140,6 +183,8 @@ func _run_all_tests() -> void:
 	_run_test("Autoload registration", _test_autoloads)
 	_run_test("Scene loading", _test_scene_loading)
 	_run_test("GameManager signal declarations", _test_signals)
+	_run_test("Inventory invariants", _test_inventory_invariants)
+	_run_test("Crafting batch invariants", _test_crafting_batch_invariants)
 	_run_test("Save/load API presence (static)", _test_save_load_api_presence)
 	_run_test("Save/load roundtrip (runtime)", _test_save_load_roundtrip)
 	print("=== Test Summary ===")
