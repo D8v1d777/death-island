@@ -1,0 +1,275 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.3"
+  GODOT_CHANNEL: "stable"
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Godot
+        id: godot
+        uses: ./setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          channel: ${{ env.GODOT_CHANNEL }}
+
+      - name: Cache Godot editor
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/godot
+            ~/.cache/godot
+          key: godot-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('src/project.godot') }}
+          restore-keys: |
+            godot-${{ runner.os }}-${{ env.GODOT_VERSION }}-
+
+      - name: Verify project configuration
+        run: |
+          cd src
+          godot --headless --check-only --quit
+        shell: bash
+
+      - name: Run GDScript linting
+        run: |
+          cd src
+          # Install gdlint if available
+          if command -v gdlint &> /dev/null; then
+            gdlint . --skip-extension .import --skip-extension .tres --skip-extension .tscn
+          else
+            echo "gdlint not available, skipping"
+          fi
+        shell: bash
+
+      - name: Check GDScript formatting
+        run: |
+          cd src
+          godot --headless --format --check-only --quit .
+        shell: bash
+
+      - name: Run unit tests
+        run: |
+          cd src
+          if [ -f "tests/unit/run_tests.gd" ]; then
+            godot --headless --script tests/unit/run_tests.gd --quit
+          else
+            echo "No unit tests found, skipping"
+          fi
+        shell: bash
+
+      - name: Run integration tests
+        run: |
+          cd src
+          if [ -f "tests/integration/run_tests.gd" ]; then
+            godot --headless --script tests/integration/run_tests.gd --quit
+          else
+            echo "No integration tests found, skipping"
+          fi
+        shell: bash
+
+  build-android:
+    name: Build Android (Debug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Godot
+        id: godot
+        uses: ./setup-godot
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          channel: ${{ env.GODOT_CHANNEL }}
+
+      - name: Cache Godot export templates
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates
+          key: godot-templates-${{ env.GODOT_VERSION }}-${{ env.GODOT_CHANNEL }}
+          restore-keys: |
+            godot-templates-${{ env.GODOT_VERSION }}-
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 35
+          ndk-version: r26c
+          build-tools: 34.0.0
+          cache-key: android-sdk-${{ runner.os }}
+
+      - name: Accept Android licenses
+        run: yes | sdkmanager --licenses
+        shell: bash
+
+      - name: Configure Godot Android export
+        run: |
+          cd src
+          # Verify export preset exists
+          godot --headless --export-release "Android" ../build/death-island-debug.apk --quit 2>&1 || true
+          # The first run may fail if templates aren't downloaded
+          # Second run should work
+          godot --headless --export-release "Android" ../build/death-island-debug.apk --quit
+        shell: bash
+
+      - name: Verify APK
+        run: |
+          if [ -f "build/death-island-debug.apk" ]; then
+            echo "APK built successfully"
+            ls -lh build/death-island-debug.apk
+            # Basic verification
+            file build/death-island-debug.apk
+          else
+            echo "APK not found!"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: death-island-debug-apk
+          path: build/death-island-debug.apk
+          retention-days: 7
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: ${{ github.sha }}
+
+      - name: Check for dangerous GDScript patterns
+        run: |
+          cd src
+          # Check for dangerous functions
+          DANGEROUS_PATTERNS=("eval" "loadstring" "OS.execute" "ResourceLoader.load_threaded_get" "FileAccess.open_encrypted_with" "Crypto.decrypt")
+
+          FOUND=0
+          for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+            if grep -r "$pattern" --include="*.gd" scripts/ 2>/dev/null; then
+              echo "::warning::Found potentially dangerous pattern: $pattern"
+              FOUND=1
+            fi
+          done
+
+          # Check for hardcoded secrets patterns
+          SECRET_PATTERNS=("password\s*=" "api_key\s*=" "secret\s*=" "token\s*=" "private_key")
+          for pattern in "${SECRET_PATTERNS[@]}"; do
+            if grep -ri "$pattern" --include="*.gd" scripts/ 2>/dev/null | grep -v "test\|example\|placeholder"; then
+              echo "::warning::Possible hardcoded secret pattern: $pattern"
+              FOUND=1
+            fi
+          done
+
+          exit $FOUND
+        shell: bash
+
+  validate-structure:
+    name: Validate Project Structure
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required files exist
+        run: |
+          REQUIRED_FILES=(
+            "README.md"
+            "CONTRIBUTING.md"
+            "LICENSE"
+            ".gitignore"
+            "AGENTS.md"
+            "docs/PRD.md"
+            "docs/ARCHITECTURE.md"
+            "docs/ROADMAP.md"
+            "docs/QUALITY_GATES.md"
+            "src/project.godot"
+            "src/scenes/Main.tscn"
+          )
+
+          MISSING=0
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing required file: $file"
+              MISSING=1
+            else
+              echo "✓ $file"
+            fi
+          done
+
+          # Check directories
+          REQUIRED_DIRS=(
+            "docs/DECISIONS"
+            "tests"
+            "src/scripts/autoloads"
+            "src/scripts/components"
+            "src/scripts/systems"
+            "src/scripts/entities"
+            "src/scripts/ui"
+            "src/scripts/data"
+            "src/scripts/utils"
+            "src/resources/definitions/items"
+            "src/resources/definitions/recipes"
+            "src/resources/definitions/enemies"
+            "src/resources/definitions/quests"
+            "src/resources/definitions/dialogue"
+          )
+
+          for dir in "${REQUIRED_DIRS[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "::error::Missing required directory: $dir"
+              MISSING=1
+            else
+              echo "✓ $dir/"
+            fi
+          done
+
+          exit $MISSING
+        shell: bash
+
+      - name: Validate project.godot syntax
+        run: |
+          cd src
+          # Just verify it parses
+          godot --headless --check-only --quit 2>&1 | head -20
+        shell: bash
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true

@@ -1,0 +1,149 @@
+; Engine configuration for Death Island
+; Godot 4.3+
+
+[application]
+config/name="Death Island"
+config/description="Atmospheric survival RPG for Android"
+config/icon="res://assets/icon.png"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("PCK", "Godot 4.3")
+config/version="0.1.0-dev"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/resizable=true
+window/size/fullscreen=false
+window/size/borderless=false
+window/size/always_on_top=false
+window/per_pixel_transparency/allowed=false
+window/per_pixel_transparency/enabled=false
+window/mouse/cursor_visible=true
+window/vsync_mode=1
+
+[rendering]
+; 0 = Compatibility, 1 = Forward+
+rendering/rendering_method=0
+rendering/quality/filters/quality=1
+rendering/quality/filters/anisotropic_filter_level=2
+rendering/quality/shadows/enabled=false
+rendering/quality/reflections/enabled=false
+rendering/quality/ao/enabled=false
+rendering/quality/gi/enabled=false
+rendering/quality/bloom/enabled=false
+rendering/quality/dof/enabled=false
+rendering/quality/motion_blur/enabled=false
+rendering/quality/sdfgi/enabled=false
+rendering/quality/taa/enabled=false
+rendering/quality/depth_prepass/enabled=false
+rendering/threads/thread_model=1
+rendering/limits/max_lights_per_object=4
+rendering/limits/max_directional_lights=1
+rendering/environment/defaults/default_clear_color=Color(0.1, 0.1, 0.12, 1)
+
+[physics]
+physics/3d/physics_engine="JoltPhysics3D"
+physics/3d/solver_iterations=8
+physics/common/physics_ticks_per_second=60
+
+[input]
+# InputMap actions for Death Island
+input_map/action_move_forward=PackedStringArray("W", "GamepadLeftStickUp")
+input_map/action_move_backward=PackedStringArray("S", "GamepadLeftStickDown")
+input_map/action_move_left=PackedStringArray("A", "GamepadLeftStickLeft")
+input_map/action_move_right=PackedStringArray("D", "GamepadRightStickRight")
+input_map/action_camera_horizontal=PackedStringArray("MouseX", "GamepadRightStickX")
+input_map/action_camera_vertical=PackedStringArray("MouseY", "GamepadRightStickY")
+input_map/action_attack_light=PackedStringArray("MouseButtonLeft", "GamepadFaceRight")
+input_map/action_attack_heavy=PackedStringArray("MouseButtonRight", "GamepadFaceDown")
+input_map/action_dodge=PackedStringArray("Shift", "GamepadFaceLeft")
+input_map/action_interact=PackedStringArray("E", "GamepadFaceUp")
+input_map/action_inventory=PackedStringArray("Tab", "GamepadStart")
+input_map/action_pause=PackedStringArray("Escape", "GamepadBack")
+
+[layer_names]
+3d_physics/layer_1="Player"
+3d_physics/layer_2="Enemy"
+3d_physics/layer_3="NPC"
+3d_physics/layer_4="ResourceNode"
+3d_physics/layer_5="WorldGeometry"
+3d_physics/layer_6="Projectile"
+3d_physics/layer_7="Trigger"
+3d_physics/layer_8="Companion"
+3d_render/layer_1="World"
+3d_render/layer_2="Characters"
+3d_render/layer_3="Effects"
+3d_render/layer_4="UI3D"
+2d_physics/layer_1="UI"
+2d_physics/layer_2="TouchInput"
+2d_render/layer_1="Background"
+2d_render/layer_2="GameUI"
+2d_render/layer_3="Overlay"
+2d_render/layer_4="Debug"
+
+[autoload]
+GameManagerGlobal="*res://scripts/autoloads/GameManagerGlobal.gd"
+SaveManagerGlobal="*res://scripts/autoloads/SaveManagerGlobal.gd"
+AudioManagerGlobal="*res://scripts/autoloads/AudioManagerGlobal.gd"
+InputManagerGlobal="*res://scripts/autoloads/InputManagerGlobal.gd"
+LoggerGlobal="*res://scripts/autoloads/LoggerGlobal.gd"
+
+[editor]
+editor/asset_library/use_certificates_validation=true
+editor/interface/language="en"
+editor/debugger/profiler/frame_data_history_size=1000
+
+[export]
+export/presets=[
+{
+"name": "Android",
+"platform": "Android",
+"runnable": true,
+"dedicated_server": false,
+"export_path": "build/death-island.apk",
+"export_filter": "all_resources",
+"include_filter": "",
+"exclude_filter": "",
+"export_with_debug": true,
+"script_encryption_key": "",
+"custom_template/debug": "",
+"custom_template/release": "",
+"icon": "res://assets/icon.png",
+"permissions": [
+"android.permission.VIBRATE",
+"android.permission.WAKE_LOCK"
+],
+"features": "",
+"opengl_es3": true,
+"architectures": ["arm64-v8a"],
+"min_sdk": 24,
+"target_sdk": 35,
+"max_sdk": 0,
+"screen_support/small": true,
+"screen_support/normal": true,
+"screen_support/large": true,
+"screen_support/xlarge": true,
+"screen_orientation": "landscape",
+"version_code": 1,
+"version_name": "0.1.0-dev",
+"keystore/debug": "res://keystore/debug.keystore",
+"keystore/release": "",
+"keystore/debug_user": "androiddebugkey",
+"keystore/debug_password": "android",
+"keystore/release_user": "",
+"keystore/release_password": ""
+}
+]
+
+[localization]
+locale/fallback="en"
+locale/test="en"
+
+[gui]
+gui/theme/default_theme="res://resources/themes/default_theme.tres"
+gui/common/default_scroll_deadzone=0
+
+[debug]
+debug/settings/profiler/frame_time_graph_history_size=300
+debug/settings/stdout/verbose_stdout=true
+debug/settings/stdout/log_level=2
