@@ -24,13 +24,8 @@ func _assert_eq(actual, expected, message: String) -> void:
 		_tests_failed += 1
 		print("  ✗ FAILED: %s - expected %s, got %s (in %s)" % [message, expected, actual, _current_test])
 
-func _run_test_suite(suite_name: String, test_func: Callable) -> void:
-	print("--- %s ---" % suite_name)
-	test_func.call()
-	print("")
-
-# Test suites as lambdas
-var _test_data_structures = func():
+# Test suites as functions (not lambdas to avoid parsing issues)
+func _test_data_structures() -> void:
 	_current_test = "ItemStack creation"
 	var stack = {"item_id": "wood", "count": 5, "max_stack": 99}
 	_assert(stack.count == 5, "ItemStack count initialized correctly")
@@ -43,7 +38,7 @@ var _test_data_structures = func():
 	stack.count = stack.max_stack
 	_assert(stack.count == 99, "ItemStack caps at max_stack")
 
-var _test_inventory_system = func():
+func _test_inventory_system() -> void:
 	_current_test = "Inventory capacity"
 	var inventory = {
 		"slots": 20,
@@ -71,7 +66,7 @@ var _test_inventory_system = func():
 	can_add = (inventory.current_weight + heavy_item.count * heavy_item.weight) <= inventory.max_weight
 	_assert(can_add == false, "Second heavy item exceeds capacity")
 
-var _test_crafting_system = func():
+func _test_crafting_system() -> void:
 	_current_test = "Recipe validation - sufficient resources"
 	var recipe = {
 		"ingredients": [
@@ -110,7 +105,7 @@ var _test_crafting_system = func():
 	_assert(inventory.wood == 3, "Wood consumed correctly")
 	_assert(inventory.stone == 1, "Stone consumed correctly")
 
-var _test_combat_math = func():
+func _test_combat_math() -> void:
 	_current_test = "Damage calculation - basic"
 	var attacker_damage = 20.0
 	var defender_armor = 5.0
@@ -148,7 +143,7 @@ var _test_combat_math = func():
 
 	_assert(stamina_cost == 15.5, "Stamina cost calculated correctly")
 
-var _test_survival_system = func():
+func _test_survival_system() -> void:
 	_current_test = "Hunger decay rate"
 	var hunger = 100.0
 	var hunger_rate = 1.0
@@ -177,7 +172,7 @@ var _test_survival_system = func():
 	hunger = min(100.0, hunger + food_restore)
 	_assert(hunger == 100.0, "Hunger caps at maximum")
 
-var _test_save_load = func():
+func _test_save_load() -> void:
 	_current_test = "Save data structure"
 	var save_data = {
 		"version": 1,
@@ -218,35 +213,38 @@ var _test_save_load = func():
 
 	_assert(checksum == checksum2, "Checksum is deterministic")
 
-# Run all tests
-print("=== Death Island Unit Tests ===")
-print("")
-
-var suites = [
-	["Data Structures", _test_data_structures],
-	["Inventory System", _test_inventory_system],
-	["Crafting System", _test_crafting_system],
-	["Combat Math", _test_combat_math],
-	["Survival System", _test_survival_system],
-	["Save/Load", _test_save_load],
-]
-
-for suite in suites:
-	print("--- %s ---" % suite[0])
-	suite[1].call()
+# Main entry point for standalone script execution
+func _init() -> void:
+	print("=== Death Island Unit Tests ===")
 	print("")
 
-print("")
-print("=== Test Summary ===")
-print("Passed: %d" % _tests_passed)
-print("Failed: %d" % _tests_failed)
-print("Total:  %d" % (_tests_passed + _tests_failed))
+	var suites = [
+		["Data Structures", _test_data_structures],
+		["Inventory System", _test_inventory_system],
+		["Crafting System", _test_crafting_system],
+		["Combat Math", _test_combat_math],
+		["Survival System", _test_survival_system],
+		["Save/Load", _test_save_load],
+	]
 
-if _tests_failed > 0:
+	for suite in suites:
+		print("--- %s ---" % suite[0])
+		suite[1].call()
+		print("")
+
 	print("")
-	print("❌ SOME TESTS FAILED")
-	quit(1)
-else:
-	print("")
-	print("✅ ALL TESTS PASSED")
-	quit(0)
+	print("=== Test Summary ===")
+	print("Passed: %d" % _tests_passed)
+	print("Failed: %d" % _tests_failed)
+	print("Total:  %d" % (_tests_passed + _tests_failed))
+
+	if _tests_failed > 0:
+		print("")
+		print("❌ SOME TESTS FAILED")
+		OS.exit(1)
+	else:
+		print("")
+		print("✅ ALL TESTS PASSED")
+		OS.exit(0)
+
+# _init() is called automatically by Godot when running with --script

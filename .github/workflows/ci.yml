@@ -68,8 +68,8 @@ jobs:
       - name: Run unit tests
         run: |
           cd src
-          if [ -f "tests/unit/run_tests.gd" ]; then
-            godot --headless --script tests/unit/run_tests.gd --quit
+          if [ -f "tests/unit/TestRunner.tscn" ]; then
+            godot --headless --main-scene res://tests/unit/TestRunner.tscn --quit
           else
             echo "No unit tests found, skipping"
           fi
@@ -78,8 +78,8 @@ jobs:
       - name: Run integration tests
         run: |
           cd src
-          if [ -f "tests/integration/run_tests.gd" ]; then
-            godot --headless --script tests/integration/run_tests.gd --quit
+          if [ -f "tests/integration/TestRunner.tscn" ]; then
+            godot --headless --main-scene res://tests/integration/TestRunner.tscn --quit
           else
             echo "No integration tests found, skipping"
           fi
@@ -236,7 +236,7 @@ jobs:
           # Check directories
           REQUIRED_DIRS=(
             "docs/DECISIONS"
-            "tests"
+            "src/tests"
             "src/scripts/autoloads"
             "src/scripts/components"
             "src/scripts/systems"
