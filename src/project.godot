@@ -87,6 +87,10 @@ SaveManagerGlobal="*res://scripts/autoloads/SaveManagerGlobal.gd"
 AudioManagerGlobal="*res://scripts/autoloads/AudioManagerGlobal.gd"
 InputManagerGlobal="*res://scripts/autoloads/InputManagerGlobal.gd"
 LoggerGlobal="*res://scripts/autoloads/LoggerGlobal.gd"
+CraftingSystemGlobal="*res://scripts/systems/crafting_system_global.gd"
+CombatSystemGlobal="*res://scripts/systems/combat_system_global.gd"
+ResourceSystemGlobal="*res://scripts/systems/resource_system_global.gd"
+SurvivalSystemGlobal="*res://scripts/systems/survival_system_global.gd"
 
 [editor]
 editor/asset_library/use_certificates_validation=true

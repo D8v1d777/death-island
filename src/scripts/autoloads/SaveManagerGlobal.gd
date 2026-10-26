@@ -176,10 +176,13 @@ func _gather_save_data(custom_data: Dictionary) -> Dictionary:
 		data["world"] = _serialize_world(game_world)
 
 	# Inventory
-	# data["inventory"] = InventoryGlobal.serialize()
+	if player:
+		var inventory_comp = player.get_node_or_null("InventoryComponent")
+		if inventory_comp:
+			data["inventory"] = inventory_comp.serialize()
 
 	# Known recipes
-	# data["known_recipes"] = CraftingSystemGlobal.get_known_recipes()
+	data["known_recipes"] = CraftingSystemGlobal.get_known_recipes()
 
 	# Quests
 	# data["quests"] = QuestSystemGlobal.serialize()
@@ -215,7 +218,7 @@ func _serialize_world(game_world: Node) -> Dictionary:
 	# Serialize resource nodes, enemy spawns, placed objects, time of day
 	return {
 		"time_of_day": 0.5,  # TimeOfDayGlobal.get_time()
-		"resource_nodes": [],  # ResourceSystemGlobal.serialize()
+		"resource_nodes": ResourceSystemGlobal.serialize(),
 		"enemy_spawns": [],    # SpawnSystemGlobal.serialize()
 		"placed_objects": []   # BuildingSystemGlobal.serialize()
 	}

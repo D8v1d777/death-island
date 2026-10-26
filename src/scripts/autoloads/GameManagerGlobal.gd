@@ -139,25 +139,41 @@ func _restore_player_state(save_data: Dictionary) -> void:
 		push_warning("Player not found after scene load")
 		return
 
+	var player_data = save_data.get("player", {})
+	if player_data.is_empty():
+		push_warning("No player data in save")
+		return
+
 	# Restore transform
-	if save_data.has("player_position"):
-		player.global_position = Vector3(save_data["player_position"])
-	if save_data.has("player_rotation"):
-		player.global_rotation = Vector3(save_data["player_rotation"])
+	if player_data.has("position"):
+		player.global_position = Vector3(player_data["position"])
+	if player_data.has("rotation"):
+		player.global_rotation = Vector3(player_data["rotation"])
 
 	# Restore stats via components
 	var health_comp = player.get_node_or_null("HealthComponent")
-	if health_comp and save_data.has("player_health"):
-		health_comp.current_health = save_data["player_health"]
+	if health_comp:
+		if player_data.has("health"):
+			health_comp.current_health = player_data["health"]
+		if player_data.has("max_health"):
+			health_comp.max_health = player_data["max_health"]
 
 	var survival_comp = player.get_node_or_null("SurvivalComponent")
 	if survival_comp:
-		if save_data.has("player_hunger"):
-			survival_comp.hunger = save_data["player_hunger"]
-		if save_data.has("player_thirst"):
-			survival_comp.thirst = save_data["player_thirst"]
-		if save_data.has("player_stamina"):
-			survival_comp.stamina = save_data["player_stamina"]
+		if player_data.has("stamina"):
+			survival_comp.stamina = player_data["stamina"]
+		if player_data.has("hunger"):
+			survival_comp.hunger = player_data["hunger"]
+		if player_data.has("thirst"):
+			survival_comp.thirst = player_data["thirst"]
+
+	var inventory_comp = player.get_node_or_null("InventoryComponent")
+	if inventory_comp and player_data.has("inventory"):
+		inventory_comp.deserialize(player_data["inventory"])
+
+	var equipment_comp = player.get_node_or_null("EquipmentComponent")
+	if equipment_comp and player_data.has("equipment"):
+		equipment_comp.deserialize(player_data["equipment"])
 
 func _apply_save_data(save_data: Dictionary) -> void:
 	# Apply world state
@@ -165,15 +181,15 @@ func _apply_save_data(save_data: Dictionary) -> void:
 		# TimeOfDayGlobal.set_time(save_data["world_time"])
 		pass
 
-	# Apply inventory
-	if save_data.has("inventory"):
-		# InventoryGlobal.load_from_dict(save_data["inventory"])
-		pass
-
+	# Apply inventory - will be restored in _restore_player_state
 	# Apply known recipes
 	if save_data.has("known_recipes"):
-		# CraftingSystemGlobal.set_known_recipes(save_data["known_recipes"])
-		pass
+		for recipe_id in save_data["known_recipes"]:
+			CraftingSystemGlobal.learn_recipe(recipe_id)
+
+	# Apply resource nodes
+	if save_data.has("world") and save_data["world"].has("resource_nodes"):
+		ResourceSystemGlobal.deserialize(save_data["world"]["resource_nodes"])
 
 	# Apply quest state
 	if save_data.has("quests"):
