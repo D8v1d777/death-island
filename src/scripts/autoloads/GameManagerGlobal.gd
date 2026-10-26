@@ -118,21 +118,26 @@ func new_game() -> void:
 	new_game_started.emit()
 
 func load_game(save_slot: int) -> void:
+	if is_loading:
+		push_warning("Cannot load a save while a scene transition is active")
+		return
 	var save_data = SaveManagerGlobal.load_game(save_slot)
 	if not save_data:
 		push_error("Failed to load game from slot: ", save_slot)
 		return
 
-	# Apply save data to systems
-	_apply_save_data(save_data)
+	var scene_path := str(save_data.get("scene_path", initial_scene))
+	if not ResourceLoader.exists(scene_path):
+		push_warning("Saved scene is unavailable; loading initial scene instead")
+		scene_path = initial_scene
 
-	# Load the scene the player was in
-	var scene_path = save_data.get("scene_path", initial_scene)
 	change_scene(scene_path)
+	while is_loading:
+		await get_tree().process_frame
 
-	# Restore player position after scene loads
-	call_deferred("_restore_player_state", save_data)
-
+	# Apply world and player state only after the destination scene exists.
+	_apply_save_data(save_data)
+	_restore_player_state(save_data)
 	game_loaded.emit(save_slot)
 
 func _restore_player_state(save_data: Dictionary) -> void:
