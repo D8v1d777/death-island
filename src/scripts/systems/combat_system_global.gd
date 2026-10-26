@@ -28,20 +28,22 @@ func apply_damage(attacker: Node, defender: Node, base_damage: float, armor: flo
 	var final_damage = calculate_damage(base_damage, armor, is_crit)
 	var health_comp = defender.get_node_or_null("HealthComponent")
 	var was_dead = health_comp.is_dead() if health_comp else true
+	var applied := false
 	if health_comp and not was_dead:
-		health_comp.take_damage(final_damage, attacker)
-		if health_comp.is_dead():
+		applied = health_comp.take_damage(final_damage, attacker)
+		if applied and health_comp.is_dead():
 			entity_defeated.emit(defender, attacker)
 
-	if not was_dead:
+	if applied:
 		hit_dealt.emit(attacker, defender, final_damage, is_crit)
 		hit_received.emit(defender, attacker, final_damage)
 
 	return {
-		"damage": final_damage if not was_dead else 0.0,
-		"is_critical": is_crit if not was_dead else false,
+		"damage": final_damage if applied else 0.0,
+		"is_critical": is_crit if applied else false,
 		"killed": health_comp.is_dead() if health_comp else false,
-		"already_dead": was_dead
+		"already_dead": was_dead,
+		"applied": applied
 	}
 
 func start_combat(attacker: Node, defender: Node) -> void:
