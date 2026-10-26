@@ -182,7 +182,7 @@ func _update_crafting_display() -> void:
 
 		var cost_label = Label.new()
 		cost_label.text = cost_text
-		cost_label.add_theme_color_override("font_color", can_craft ? Color.GREEN : Color.RED)
+		cost_label.add_theme_color_override("font_color", Color.GREEN if can_craft else Color.RED)
 		hbox.add_child(cost_label)
 
 		var craft_btn = Button.new()
