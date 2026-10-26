@@ -16,22 +16,22 @@ func _ready() -> void:
 	# Initialize from saved data if needed
 	pass
 
-func add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1) -> bool:
-	if count <= 0:
+func can_add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1) -> bool:
+	if item_id.is_empty() or count <= 0 or weight_per_unit < 0.0:
 		return false
-
-	var current_count = _items.get(item_id, 0)
-	var weight_increase = count * weight_per_unit
-
-	# Check slot limit (new item takes a slot if not already present)
+	var current_count = int(_items.get(item_id, 0))
 	var new_slot = 0 if current_count > 0 else 1
 	if get_used_slots() + new_slot > max_slots:
-		capacity_reached.emit()
+		return false
+	return get_current_weight() + float(count) * weight_per_unit <= max_weight + 0.0001
+
+func add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1) -> bool:
+	if not can_add_item(item_id, count, weight_per_unit):
+		if item_id.is_empty() or count <= 0 or weight_per_unit < 0.0 or get_used_slots() >= max_slots:
+			capacity_reached.emit()
 		return false
 
-	# Check weight limit
-	if get_current_weight() + weight_increase > max_weight:
-		return false
+	var current_count = int(_items.get(item_id, 0))
 
 	_items[item_id] = current_count + count
 	_item_weights[item_id] = weight_per_unit
@@ -40,7 +40,9 @@ func add_item(item_id: String, count: int = 1, weight_per_unit: float = 0.1) -> 
 	return true
 
 func remove_item(item_id: String, count: int = 1) -> bool:
-	var current_count = _items.get(item_id, 0)
+	if item_id.is_empty() or count <= 0:
+		return false
+	var current_count = int(_items.get(item_id, 0))
 	if current_count < count:
 		return false
 
@@ -99,11 +101,14 @@ func deserialize(data: Dictionary) -> void:
 	_item_weights.clear()
 	for item_id in data:
 		var item_data = data[item_id]
-		if item_data is Dictionary:
-			_items[item_id] = item_data.get("count", 0)
-			_item_weights[item_id] = item_data.get("weight", 0.1)
-		else:
-			# Legacy format
-			_items[item_id] = item_data
-			_item_weights[item_id] = 0.1
+		var count := int(item_data.get("count", 0)) if item_data is Dictionary else int(item_data)
+		var weight := float(item_data.get("weight", 0.1)) if item_data is Dictionary else 0.1
+		if str(item_id).is_empty() or count <= 0 or weight < 0.0:
+			push_warning("Ignoring invalid saved inventory entry: %s" % str(item_id))
+			continue
+		if _items.size() >= max_slots or get_current_weight() + count * weight > max_weight + 0.0001:
+			push_warning("Ignoring saved inventory entry that exceeds capacity: %s" % str(item_id))
+			continue
+		_items[item_id] = count
+		_item_weights[item_id] = weight
 	inventory_changed.emit()
