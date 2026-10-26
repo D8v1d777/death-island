@@ -33,6 +33,8 @@ func _ready() -> void:
 	call_deferred("_load_initial_scene")
 
 func _load_initial_scene() -> void:
+	if CraftingSystemGlobal.get_recipe("stone_axe") != null and not CraftingSystemGlobal.is_recipe_known("stone_axe"):
+		CraftingSystemGlobal.learn_recipe("stone_axe")
 	change_scene(initial_scene)
 
 func change_scene(target_scene_path: String) -> void:
