@@ -1,11 +1,7 @@
-[gd_scene load_steps=4 format=3
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://scripts/entities/resource_node.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/ItemPickup.tscn" id="2"]
 
-[node name="ResourceNode" type="RigidBody3D" script=ExtResource("1")]
-collision_layer = 16
+[node name="ResourceNode" type="StaticBody3D" script=ExtResource("1")]
+collision_layer = 8
 collision_mask = 31
-rigid_body_mode = 3
-
-[node name="ItemPickup" type="PackedScene" parent="." resource=ExtResource(2)]

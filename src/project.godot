@@ -4,7 +4,6 @@
 [application]
 config/name="Death Island"
 config/description="Atmospheric survival RPG for Android"
-config/icon="res://assets/icon.png"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("PCK", "Godot 4.3")
 config/version="0.1.0-dev"
@@ -97,54 +96,11 @@ editor/asset_library/use_certificates_validation=true
 editor/interface/language="en"
 editor/debugger/profiler/frame_data_history_size=1000
 
-[export]
-export/presets=[
-{
-"name": "Android",
-"platform": "Android",
-"runnable": true,
-"dedicated_server": false,
-"export_path": "build/death-island.apk",
-"export_filter": "all_resources",
-"include_filter": "",
-"exclude_filter": "",
-"export_with_debug": true,
-"script_encryption_key": "",
-"custom_template/debug": "",
-"custom_template/release": "",
-"icon": "res://assets/icon.png",
-"permissions": [
-"android.permission.VIBRATE",
-"android.permission.WAKE_LOCK"
-],
-"features": "",
-"opengl_es3": true,
-"architectures": ["arm64-v8a"],
-"min_sdk": 24,
-"target_sdk": 35,
-"max_sdk": 0,
-"screen_support/small": true,
-"screen_support/normal": true,
-"screen_support/large": true,
-"screen_support/xlarge": true,
-"screen_orientation": "landscape",
-"version_code": 1,
-"version_name": "0.1.0-dev",
-"keystore/debug": "res://keystore/debug.keystore",
-"keystore/release": "",
-"keystore/debug_user": "androiddebugkey",
-"keystore/debug_password": "android",
-"keystore/release_user": "",
-"keystore/release_password": ""
-}
-]
-
 [localization]
 locale/fallback="en"
 locale/test="en"
 
 [gui]
-gui/theme/default_theme="res://resources/themes/default_theme.tres"
 gui/common/default_scroll_deadzone=0
 
 [debug]

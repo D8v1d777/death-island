@@ -15,7 +15,7 @@ signal level_up(level: int)
 @export var mouse_sensitivity: float = 0.002
 @export var interaction_range: float = 3.0
 
-@onready var camera: Camera3D = $Camera3D
+@onready var camera: Camera3D = $CameraPivot/Camera3D
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var health_comp: HealthComponent = $HealthComponent
 @onready var inventory_comp: InventoryComponent = $InventoryComponent
@@ -36,6 +36,9 @@ func _ready() -> void:
 	survival_comp.stamina_changed.connect(_on_stamina_changed)
 	survival_comp.exhausted.connect(_on_exhausted)
 	inventory_comp.inventory_changed.connect(_on_inventory_changed)
+	if not InputManagerGlobal.camera_dragged.is_connected(_on_camera_dragged):
+		InputManagerGlobal.camera_dragged.connect(_on_camera_dragged)
+	add_to_group("player")
 
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -55,9 +58,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		_try_attack()
 
 func _physics_process(delta: float) -> void:
+	_is_sprinting = InputManagerGlobal.is_action_pressed("sprint") and survival_comp.stamina > 0.0
 	_handle_movement(delta)
 	_handle_camera()
 	_update_interaction_target()
+	if InputManagerGlobal.is_action_just_pressed("interact"):
+		_try_interact()
+	var light_attack_pressed = InputManagerGlobal.is_action_just_pressed("attack_light")
+	var heavy_attack_pressed = InputManagerGlobal.is_action_just_pressed("attack_heavy")
+	if light_attack_pressed or heavy_attack_pressed:
+		_try_attack()
 	_attack_cooldown = max(0.0, _attack_cooldown - delta)
 
 func _handle_movement(delta: float) -> void:
@@ -100,7 +110,7 @@ func _handle_movement(delta: float) -> void:
 		right.y = 0
 		right = right.normalized()
 
-		var move_dir = (forward * input_dir.z + right * input_dir.x).normalized()
+		var move_dir = (forward * -input_dir.z + right * input_dir.x).normalized()
 
 		var speed = move_speed
 		if _is_sprinting and survival_comp.stamina > 0:
@@ -123,8 +133,16 @@ func _handle_movement(delta: float) -> void:
 	move_and_slide()
 
 func _handle_camera() -> void:
-	camera_pivot.rotation.y = _camera_rotation.y
-	camera.rotation.x = _camera_rotation.x
+	camera_pivot.rotation = Vector3(_camera_rotation.x, _camera_rotation.y, 0.0)
+	camera.rotation = Vector3.ZERO
+
+func _on_camera_dragged(delta: Vector2) -> void:
+	var sensitivity = InputManagerGlobal.get_touch_sensitivity()
+	var horizontal_sign = 1.0 if InputManagerGlobal.get_invert_camera_x() else -1.0
+	var vertical_sign = 1.0 if InputManagerGlobal.get_invert_camera_y() else -1.0
+	_camera_rotation.y += delta.x * sensitivity * horizontal_sign
+	_camera_rotation.x += delta.y * sensitivity * vertical_sign
+	_camera_rotation.x = clamp(_camera_rotation.x, -PI / 2.0 + 0.1, PI / 2.0 - 0.1)
 
 func _update_interaction_target() -> void:
 	var space_state = get_world_3d().direct_space_state
@@ -162,21 +180,19 @@ func _try_attack() -> void:
 		var collider = Object.instance_from_id(result.collider_id)
 		if collider and collider.is_in_group("enemies"):
 			var damage_result = CombatSystemGlobal.apply_damage(self, collider, 20.0, 0.0, 0.1)
-			AudioManagerGlobal.play_sfx_3d(load("res://assets/audio/sfx/hit.ogg"), collider.global_position)
-			if damage_result.killed:
+			var hit_sound = load("res://assets/audio/sfx/hit.ogg")
+			if hit_sound:
+				AudioManagerGlobal.play_sfx_3d(hit_sound, collider.global_position)
+			if damage_result.killed and not damage_result.get("already_dead", false):
 				_on_enemy_defeated(collider)
 
 func _on_enemy_defeated(enemy: Node) -> void:
-	# Grant XP, loot
-	var xp = 25
-	# TODO: Add XP system
-
-	# Spawn loot
-	var loot = {"wood": 1, "stone": 1}
-	for item_id in loot:
-		var count = loot[item_id]
-		if randf() < 0.5:
-			inventory_comp.add_item(item_id, count)
+	# Enemy owns its loot table and spawns pickup entities. Keep player-side
+	# rewards separate so repeated hits cannot duplicate drops.
+	if enemy.has_meta("death_reward_claimed"):
+		return
+	enemy.set_meta("death_reward_claimed", true)
+	# TODO: Add XP progression after the vertical slice is stable.
 
 func _on_health_changed(current: float, max: float) -> void:
 	health_changed.emit(current, max)

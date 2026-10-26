@@ -69,24 +69,35 @@ func can_craft(recipe_id: String, inventory: Dictionary) -> bool:
 
 func craft(recipe_id: String, inventory: Dictionary, count: int = 1) -> Dictionary:
 	var recipe = _recipe_cache.get(recipe_id)
-	if not recipe:
+	if recipe == null:
 		craft_failed.emit("Recipe not found: " + recipe_id)
 		return {"success": false, "reason": "Recipe not found"}
-
 	if not _known_recipes.has(recipe_id):
 		craft_failed.emit("Recipe not learned: " + recipe_id)
 		return {"success": false, "reason": "Recipe not learned"}
+	if count <= 0 or recipe.result_count <= 0 or recipe.result_item_id.is_empty():
+		craft_failed.emit("Invalid craft count or recipe result")
+		return {"success": false, "reason": "Invalid craft request"}
 
-	if not recipe.can_craft(inventory):
-		craft_failed.emit("Insufficient ingredients")
-		return {"success": false, "reason": "Insufficient ingredients"}
+	# Validate the full batch before consuming anything; repeated crafting must
+	# never drive ingredient counts negative.
+	var required: Dictionary = {}
+	for ingredient in recipe.ingredients:
+		var item_id: String = str(ingredient.get("item_id", ""))
+		var ingredient_count: int = int(ingredient.get("count", 0))
+		if item_id.is_empty() or ingredient_count <= 0:
+			craft_failed.emit("Invalid ingredient definition")
+			return {"success": false, "reason": "Invalid ingredient definition"}
+		required[item_id] = int(required.get(item_id, 0)) + ingredient_count * count
+	for item_id in required:
+		if int(inventory.get(item_id, 0)) < int(required[item_id]):
+			craft_failed.emit("Insufficient ingredients")
+			return {"success": false, "reason": "Insufficient ingredients"}
 
-	var result = {"success": true, "result_item": recipe.result_item_id, "count": recipe.result_count * count}
-
-	# Consume ingredients
 	for i in range(count):
 		recipe.consume_ingredients(inventory)
 
+	var result = {"success": true, "result_item": recipe.result_item_id, "count": recipe.result_count * count}
 	item_crafted.emit(recipe_id, count)
 	return result
 

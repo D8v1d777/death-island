@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [master, main, develop]
   pull_request:
-    branches: [main, develop]
+    branches: [master, main, develop]
 
 permissions:
   contents: read
@@ -27,7 +27,7 @@ jobs:
 
       - name: Setup Godot
         id: godot
-        uses: ./setup-godot
+        uses: ./.github/actions/setup-godot
         with:
           version: ${{ env.GODOT_VERSION }}
           channel: ${{ env.GODOT_CHANNEL }}
@@ -68,21 +68,21 @@ jobs:
       - name: Run unit tests
         run: |
           cd src
-          if [ -f "tests/unit/TestRunner.tscn" ]; then
-            godot --headless --main-scene res://tests/unit/TestRunner.tscn --quit
-          else
-            echo "No unit tests found, skipping"
+          if [ ! -f "tests/unit/TestRunner.tscn" ]; then
+            echo "::error::Missing unit test runner: tests/unit/TestRunner.tscn"
+            exit 1
           fi
+          godot --headless --main-scene res://tests/unit/TestRunner.tscn --quit
         shell: bash
 
       - name: Run integration tests
         run: |
           cd src
-          if [ -f "tests/integration/TestRunner.tscn" ]; then
-            godot --headless --main-scene res://tests/integration/TestRunner.tscn --quit
-          else
-            echo "No integration tests found, skipping"
+          if [ ! -f "tests/integration/TestRunner.tscn" ]; then
+            echo "::error::Missing integration test runner: tests/integration/TestRunner.tscn"
+            exit 1
           fi
+          godot --headless --main-scene res://tests/integration/TestRunner.tscn --quit
         shell: bash
 
   build-android:
@@ -99,7 +99,7 @@ jobs:
 
       - name: Setup Godot
         id: godot
-        uses: ./setup-godot
+        uses: ./.github/actions/setup-godot
         with:
           version: ${{ env.GODOT_VERSION }}
           channel: ${{ env.GODOT_CHANNEL }}
@@ -112,26 +112,36 @@ jobs:
           restore-keys: |
             godot-templates-${{ env.GODOT_VERSION }}-
 
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
-          api-level: 35
-          ndk-version: r26c
-          build-tools: 34.0.0
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools platforms;android-35 build-tools;34.0.0 ndk;26.1.10909125
           cache-key: android-sdk-${{ runner.os }}
 
-      - name: Accept Android licenses
-        run: yes | sdkmanager --licenses
+      - name: Create ephemeral debug keystore
+        run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/death-island-debug.keystore" \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
         shell: bash
 
       - name: Configure Godot Android export
         run: |
+          mkdir -p ../build
           cd src
-          # Verify export preset exists
-          godot --headless --export-release "Android" ../build/death-island-debug.apk --quit 2>&1 || true
-          # The first run may fail if templates aren't downloaded
-          # Second run should work
-          godot --headless --export-release "Android" ../build/death-island-debug.apk --quit
+          godot --headless --editor --path . --quit
+          godot --headless --path . --export-debug "Android" ../build/death-island-debug.apk
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/death-island-debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         shell: bash
 
       - name: Verify APK
@@ -261,13 +271,6 @@ jobs:
           done
 
           exit $MISSING
-        shell: bash
-
-      - name: Validate project.godot syntax
-        run: |
-          cd src
-          # Just verify it parses
-          godot --headless --check-only --quit 2>&1 | head -20
         shell: bash
 
 concurrency:

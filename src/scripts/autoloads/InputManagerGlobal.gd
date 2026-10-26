@@ -4,6 +4,7 @@ extends Node
 
 signal touch_controls_changed
 signal vibration_requested(duration_ms: int, intensity: float)
+signal camera_dragged(delta: Vector2)
 
 @export_group("Touch Control Configuration")
 @export var joystick_zone_rect: Rect2 = Rect2(0, 0, 0.4, 1.0)  # Left 40% of screen
@@ -47,15 +48,36 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _ensure_input_map() -> void:
 	var actions = [
-		"move_forward", "move_backward", "move_left", "move_right",
+		"move_forward", "move_backward", "move_left", "move_right", "sprint",
 		"camera_horizontal", "camera_vertical",
 		"attack_light", "attack_heavy", "dodge", "interact",
 		"inventory", "pause"
 	]
-
 	for action in actions:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action)
+
+	# project.godot's legacy input_map/action_* settings do not create Godot
+	# InputMap events. Bind physical keys here so desktop smoke tests work too.
+	var bindings = {
+		"move_forward": [KEY_W, KEY_UP],
+		"move_backward": [KEY_S, KEY_DOWN],
+		"move_left": [KEY_A, KEY_LEFT],
+		"move_right": [KEY_D, KEY_RIGHT],
+		"sprint": [KEY_SHIFT],
+		"interact": [KEY_E],
+		"attack_light": [KEY_F],
+		"attack_heavy": [KEY_G],
+		"dodge": [KEY_SPACE],
+		"inventory": [KEY_TAB],
+		"pause": [KEY_ESCAPE]
+	}
+	for action_name in bindings:
+		if InputMap.action_get_events(action_name).is_empty():
+			for keycode in bindings[action_name]:
+				var key_event := InputEventKey.new()
+				key_event.physical_keycode = keycode
+				InputMap.action_add_event(action_name, key_event)
 
 ## Public API
 
@@ -69,7 +91,9 @@ func is_action_pressed(action: String) -> bool:
 
 func is_action_just_pressed(action: String) -> bool:
 	"""Check if action was just pressed this frame"""
-	return Input.is_action_just_pressed(action) or _is_touch_action_just_pressed(action)
+	var input_just_pressed := Input.is_action_just_pressed(action)
+	var touch_just_pressed := _is_touch_action_just_pressed(action)
+	return input_just_pressed or touch_just_pressed
 
 func is_action_just_released(action: String) -> bool:
 	"""Check if action was just released this frame"""
@@ -141,7 +165,7 @@ func _on_touch_start(index: int, position: Vector2, normalized: Vector2) -> void
 	# Check action zone buttons
 	var button_action = _get_button_at_position(normalized)
 	if button_action:
-		active_touches[index] = {"type": "button", "action": button_action, "pressed": true}
+		active_touches[index] = {"type": "button", "action": button_action, "pressed": true, "just_pressed": true}
 		_simulate_action_press(button_action)
 		_vibrate_for_action(button_action)
 		return
@@ -174,15 +198,8 @@ func _on_touch_drag(index: int, position: Vector2, normalized: Vector2) -> void:
 		"camera":
 			var delta = position - touch.last_pos
 			touch.last_pos = position
-
-			var sensitivity = camera_touch_sensitivity
-			var x = delta.x * sensitivity * (1.0 if invert_camera_x else -1.0)
-			var y = delta.y * sensitivity * (1.0 if invert_camera_y else -1.0)
-
-			Input.action_press("camera_horizontal", abs(x) > 0.001)
-			Input.action_press("camera_vertical", abs(y) > 0.001)
-			# Note: Godot doesn't support analog action strength directly
-			# Camera system should read from Input.get_axis or similar
+			active_touches[index] = touch
+			camera_dragged.emit(delta)
 
 		"button":
 			# Check if drag moved off button
@@ -209,8 +226,7 @@ func _on_touch_end(index: int, position: Vector2, normalized: Vector2) -> void:
 				_simulate_action_release(touch.action)
 
 		"camera":
-			Input.action_release("camera_horizontal")
-			Input.action_release("camera_vertical")
+			pass
 
 	active_touches.erase(index)
 
@@ -220,6 +236,7 @@ func _point_in_zone(point: Vector2, zone: Rect2) -> bool:
 
 func _get_button_at_position(normalized: Vector2) -> String:
 	var viewport_size = get_viewport().get_visible_rect().size
+	var position = normalized * viewport_size
 	var zone_pos = action_zone_rect.position * viewport_size
 	var zone_size = action_zone_rect.size * viewport_size
 
@@ -228,16 +245,21 @@ func _get_button_at_position(normalized: Vector2) -> String:
 		var btn_center = zone_pos + rel_pos * zone_size
 		var btn_rect = Rect2(btn_center - Vector2(button_size, button_size) * 0.5, Vector2(button_size, button_size))
 
-		if btn_rect.has_point(get_viewport().get_mouse_position()):
+		if btn_rect.has_point(position):
 			return action
 	return ""
 
 func _set_joystick_actions(value: Vector2) -> void:
-	# Map joystick to movement actions
-	Input.action_press("move_right", value.x > joystick_deadzone)
-	Input.action_press("move_left", value.x < -joystick_deadzone)
-	Input.action_press("move_forward", value.y < -joystick_deadzone)  # Y is inverted in screen space
-	Input.action_press("move_backward", value.y > joystick_deadzone)
+	_set_action_state("move_right", value.x > joystick_deadzone)
+	_set_action_state("move_left", value.x < -joystick_deadzone)
+	_set_action_state("move_forward", value.y < -joystick_deadzone)
+	_set_action_state("move_backward", value.y > joystick_deadzone)
+
+func _set_action_state(action: String, pressed: bool) -> void:
+	if pressed:
+		Input.action_press(action)
+	else:
+		Input.action_release(action)
 
 func _clear_joystick_actions() -> void:
 	Input.action_release("move_right")
@@ -258,8 +280,14 @@ func _is_touch_action_pressed(action: String) -> bool:
 	return false
 
 func _is_touch_action_just_pressed(action: String) -> bool:
-	# Touch actions are instant, so just_pressed == pressed for touch
-	return _is_touch_action_pressed(action)
+	for index in active_touches:
+		var touch = active_touches[index]
+		if touch.type == "button" and touch.action == action and touch.pressed:
+			if touch.get("just_pressed", false):
+				touch.just_pressed = false
+				active_touches[index] = touch
+				return true
+	return false
 
 func _is_touch_action_just_released(action: String) -> bool:
 	# Would need frame tracking for true just_released

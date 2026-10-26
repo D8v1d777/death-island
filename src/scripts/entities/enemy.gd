@@ -57,7 +57,7 @@ func _update_ai(delta: float) -> void:
 		return
 
 	var player = _find_player()
-	var distance_to_player = _target.distance_to(global_position) if _target else INF
+	var distance_to_player = player.global_position.distance_to(global_position) if player else INF
 
 	match _state:
 		AIState.IDLE:

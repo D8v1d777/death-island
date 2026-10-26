@@ -19,17 +19,8 @@ func unregister_resource_node(node: Node) -> void:
 	_respawn_timers.erase(node)
 
 func gather_resource(node: Node, item_id: String, base_count: int = 1, tool_bonus: float = 1.0) -> int:
-	var count = int(base_count * tool_bonus)
-	count = max(1, count)
-
+	var count = max(1, int(base_count * tool_bonus))
 	resource_gathered.emit(node, item_id, count)
-
-	var gather_count = _respawn_timers.get(node, {"gathers": 0})
-	gather_count.gathers += 1
-
-	if gather_count.gathers >= 3:
-		deplete_resource(node)
-
 	return count
 
 func deplete_resource(node: Node) -> void:
@@ -69,25 +60,18 @@ func get_active_resource_count() -> int:
 	return count
 
 func serialize() -> Array[Dictionary]:
-	var data = []
+	var data: Array[Dictionary] = []
 	for node in _resource_nodes:
-		if is_instance_valid(node):
+		if is_instance_valid(node) and node.has_method("serialize"):
 			data.append({
-				"path": node.get_path(),
-				"visible": node.visible,
-				"gathers": _respawn_timers.get(node, {"gathers": 0}).gathers,
-				"timer": _respawn_timers.get(node, {}).get("timer", 0.0)
+				"path": str(node.get_path()),
+				"state": node.serialize()
 			})
 	return data
 
 func deserialize(data: Array[Dictionary]) -> void:
 	for entry in data:
-		var node = get_node_or_null(entry.path)
-		if node:
-			node.visible = entry.visible
-			var gathers = entry.get("gathers", 0)
-			var timer = entry.get("timer", 0.0)
-			if timer > 0:
-				_respawn_timers[node] = {"gathers": gathers, "timer": timer}
-			else:
-				_respawn_timers[node] = {"gathers": gathers}
+		var node_path := NodePath(str(entry.get("path", "")))
+		var node = get_tree().root.get_node_or_null(node_path)
+		if node and node.has_method("deserialize"):
+			node.deserialize(entry.get("state", {}))

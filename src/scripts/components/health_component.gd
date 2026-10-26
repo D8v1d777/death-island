@@ -10,6 +10,7 @@ signal damaged(amount: float, source: Node)
 @export var invulnerable_time: float = 0.5
 
 var _last_damage_time: float = 0.0
+var _has_taken_damage: bool = false
 var _is_dead: bool = false
 
 func _ready() -> void:
@@ -23,10 +24,11 @@ func take_damage(amount: float, source: Node = null) -> bool:
 		return false
 
 	var now = Time.get_ticks_msec() / 1000.0
-	if now - _last_damage_time < invulnerable_time:
+	if _has_taken_damage and now - _last_damage_time < invulnerable_time:
 		return false
 
 	_last_damage_time = now
+	_has_taken_damage = true
 	current_health = max(0.0, current_health - amount)
 	health_changed.emit(current_health, max_health)
 	damaged.emit(amount, source)

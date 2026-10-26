@@ -26,7 +26,7 @@ func _ready() -> void:
 	# Ensure save directory exists
 	var dir = DirAccess.open(save_directory)
 	if not dir:
-		DirAccess.make_dir_recursive_absolute(save_directory)
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(save_directory))
 
 	# Start auto-save timer
 	_auto_save_timer = auto_save_interval
@@ -88,7 +88,7 @@ func load_game(slot: int) -> Dictionary:
 func delete_save(slot: int) -> void:
 	var path = _get_save_path(slot)
 	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 		_save_list_updated()
 
 func list_saves() -> Array[Dictionary]:
@@ -100,12 +100,11 @@ func list_saves() -> Array[Dictionary]:
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
 	while file_name != "":
-		if file_name.ends_with(".save"):
+		if file_name == "quicksave.save" or file_name == "autosave.save" or (file_name.begins_with("slot_") and file_name.ends_with(".save")):
 			var slot = _slot_from_filename(file_name)
-			if slot >= 0:
-				var info = _get_save_info(slot)
-				if info:
-					saves.append(info)
+			var info = _get_save_info(slot)
+			if info:
+				saves.append(info)
 		file_name = dir.get_next()
 	dir.list_dir_end()
 
@@ -140,7 +139,7 @@ func _get_save_info(slot: int) -> Dictionary:
 		"name": slot_name,
 		"version": version,
 		"timestamp": timestamp,
-		"valid": magic == SAVE_MAGIC,
+		"valid": _verify_save_file(path),
 		"path": path
 	}
 
@@ -157,7 +156,7 @@ func _gather_save_data(custom_data: Dictionary) -> Dictionary:
 	var data = {
 		"version": SAVE_VERSION,
 		"timestamp": Time.get_unix_time_from_system(),
-		"scene_path": GameManagerGlobal.current_scene_name,
+		"scene_path": GameManagerGlobal.get_current_scene().scene_file_path if GameManagerGlobal.get_current_scene() else GameManagerGlobal.initial_scene,
 		"player": {},
 		"world": {},
 		"inventory": {},
@@ -238,6 +237,9 @@ func _get_settings_snapshot() -> Dictionary:
 
 func _write_save_file(slot: int, data: Dictionary) -> Error:
 	var path = _get_save_path(slot)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(save_directory))
+	if FileAccess.file_exists(path):
+		_create_backup(slot)
 	var file = FileAccess.open(path, FileAccess.WRITE)
 	if not file:
 		return ERR_CANT_OPEN
@@ -280,13 +282,17 @@ func _read_save_file(slot: int) -> Dictionary:
 	file.close()
 
 	var json_string = json_bytes.get_string_from_utf8()
-	var parse_result = JSON.parse_string(json_string)
-
-	if parse_result.error != OK:
-		save_corrupted.emit(slot, "JSON parse error: " + parse_result.error_message)
+	var parser := JSON.new()
+	var parse_error: Error = parser.parse(json_string)
+	if parse_error != OK:
+		save_corrupted.emit(slot, "JSON parse error: " + parser.get_error_message())
 		return _attempt_recovery(slot)
 
-	return parse_result
+	if not parser.data is Dictionary:
+		save_corrupted.emit(slot, "Save payload is not a dictionary")
+		return _attempt_recovery(slot)
+
+	return parser.data
 
 func _verify_save_file(path: String) -> bool:
 	if not FileAccess.file_exists(path):
@@ -342,10 +348,11 @@ func _attempt_recovery(slot: int) -> Dictionary:
 				var json_bytes = file.get_buffer(file.get_length() - file.get_position())
 				file.close()
 				var json_string = json_bytes.get_string_from_utf8()
-				var parse_result = JSON.parse_string(json_string)
-				if parse_result.error == OK:
+				var parser := JSON.new()
+				var parse_error: Error = parser.parse(json_string)
+				if parse_error == OK and parser.data is Dictionary:
 					push_warning("Recovered save slot %d from backup %d" % [slot, i])
-					return parse_result
+					return parser.data
 
 	return {}
 
@@ -354,17 +361,20 @@ func _create_backup(slot: int) -> void:
 	if not FileAccess.file_exists(path):
 		return
 
-	# Rotate backups
+	# Rotate backups using absolute filesystem paths; DirAccess absolute APIs
+	# do not accept user:// virtual paths directly.
 	for i in range(max_backups_per_slot - 1, 0, -1):
 		var src = _get_backup_path(slot, i - 1)
 		var dst = _get_backup_path(slot, i)
+		var src_absolute = ProjectSettings.globalize_path(src)
+		var dst_absolute = ProjectSettings.globalize_path(dst)
 		if FileAccess.file_exists(src):
-			DirAccess.remove_absolute(dst)
-			DirAccess.copy_absolute(src, dst)
+			if FileAccess.file_exists(dst):
+				DirAccess.remove_absolute(dst_absolute)
+			DirAccess.copy_absolute(src_absolute, dst_absolute)
 
-	# Create new backup
 	var backup_path = _get_backup_path(slot, 0)
-	DirAccess.copy_absolute(path, backup_path)
+	DirAccess.copy_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(backup_path))
 
 func _get_save_path(slot: int) -> String:
 	var slot_name = _get_slot_filename(slot)
@@ -398,9 +408,11 @@ func _get_player() -> Node:
 
 func _get_game_world() -> Node:
 	var current = GameManagerGlobal.get_current_scene()
-	if current:
-		return current.get_node_or_null("GameWorld")
-	return null
+	if current == null:
+		return null
+	if current.name == "GameWorld" or current.scene_file_path.ends_with("GameWorld.tscn"):
+		return current
+	return current.get_node_or_null("GameWorld")
 
 func _save_list_updated() -> void:
 	save_list_updated.emit()
