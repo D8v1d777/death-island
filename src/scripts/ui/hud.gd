@@ -6,7 +6,6 @@ class_name HUD
 @onready var hunger_bar: ProgressBar = $HungerBar
 @onready var thirst_bar: ProgressBar = $ThirstBar
 @onready var interaction_label: Label = $InteractionLabel
-@onready var inventory_label: Label = $InventoryLabel
 @onready var pause_menu: Panel = $PauseMenu
 @onready var inventory_panel: Panel = $InventoryPanel
 @onready var inventory_grid: GridContainer = $InventoryPanel/InventoryGrid
@@ -19,12 +18,9 @@ var _show_inventory: bool = false
 var _show_crafting: bool = false
 
 func _ready() -> void:
-	_player = get_tree().root.get_node("GameWorld/Player", true)
-	if not _player:
-		# Try to find player
-		var game_world = get_tree().root.get_node_or_null("GameWorld")
-		if game_world:
-			_player = game_world.get_node_or_null("Player")
+	var current_scene = get_tree().current_scene
+	if current_scene:
+		_player = current_scene.get_node_or_null("Player")
 
 	if _player:
 		var health_comp = _player.get_node_or_null("HealthComponent")
@@ -50,6 +46,10 @@ func _ready() -> void:
 	# Connect signals
 	GameManagerGlobal.game_paused.connect(_on_game_paused)
 	GameManagerGlobal.game_resumed.connect(_on_game_resumed)
+	$PauseMenu/PauseContainer/ResumeButton.pressed.connect(_on_resume_pressed)
+	$PauseMenu/PauseContainer/SaveButton.pressed.connect(_on_save_pressed)
+	$PauseMenu/PauseContainer/LoadButton.pressed.connect(_on_load_pressed)
+	$PauseMenu/PauseContainer/QuitButton.pressed.connect(_on_quit_pressed)
 
 	# Hide panels initially
 	pause_menu.visible = false
@@ -198,14 +198,33 @@ func _on_craft_pressed(recipe_id: String) -> void:
 	if not inventory_comp:
 		return
 
+	var recipe = CraftingSystemGlobal.get_recipe(recipe_id)
+	if recipe == null:
+		return
 	var inventory = inventory_comp.get_all_items()
 	var result = CraftingSystemGlobal.craft(recipe_id, inventory)
+	if not result.get("success", false):
+		return
 
-	if result.success:
-		# Add result to inventory
-		inventory_comp.add_item(result.result_item, result.count)
-		_update_inventory_display()
-		_update_crafting_display()
+	# CraftingSystemGlobal validates and consumes a snapshot. Apply the same
+	# ingredient delta to the authoritative inventory before adding the result.
+	for ingredient in recipe.ingredients:
+		if not inventory_comp.remove_item(ingredient.item_id, ingredient.count):
+			push_error("Inventory changed during crafting; refusing to add result")
+			return
+
+	var result_definition = ResourceLoader.load("res://resources/definitions/items/%s.tres" % result.result_item)
+	var result_weight = result_definition.weight if result_definition else 0.1
+	if not inventory_comp.add_item(result.result_item, result.count, result_weight):
+		# Roll back ingredients if the result cannot fit.
+		for ingredient in recipe.ingredients:
+			var definition = ResourceLoader.load("res://resources/definitions/items/%s.tres" % ingredient.item_id)
+			inventory_comp.add_item(ingredient.item_id, ingredient.count, definition.weight if definition else 0.1)
+		push_warning("Not enough inventory capacity to hold the crafted item")
+		return
+
+	_update_inventory_display()
+	_update_crafting_display()
 
 func _on_resume_pressed() -> void:
 	GameManagerGlobal.resume_game()
