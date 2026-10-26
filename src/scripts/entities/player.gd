@@ -181,20 +181,16 @@ func _try_attack() -> void:
 			var hit_sound = load("res://assets/audio/sfx/hit.ogg")
 			if hit_sound:
 				AudioManagerGlobal.play_sfx_3d(hit_sound, collider.global_position)
-			if damage_result.killed:
+			if damage_result.killed and not damage_result.get("already_dead", false):
 				_on_enemy_defeated(collider)
 
 func _on_enemy_defeated(enemy: Node) -> void:
-	var definition = enemy.get("enemy_definition")
-	if definition == null:
+	# Enemy owns its loot table and spawns pickup entities. Keep player-side
+	# rewards separate so repeated hits cannot duplicate drops.
+	if enemy.has_meta("death_reward_claimed"):
 		return
-	for drop in definition.loot_table:
-		if randf() <= float(drop.get("chance", 0.0)):
-			var item_id: String = str(drop.get("item_id", ""))
-			var count: int = int(drop.get("count", 0))
-			var item_definition = ResourceLoader.load("res://resources/definitions/items/%s.tres" % item_id)
-			var weight = item_definition.weight if item_definition else 0.1
-			inventory_comp.add_item(item_id, count, weight)
+	enemy.set_meta("death_reward_claimed", true)
+	# TODO: Add XP progression after the vertical slice is stable.
 
 func _on_health_changed(current: float, max: float) -> void:
 	health_changed.emit(current, max)
