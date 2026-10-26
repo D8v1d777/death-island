@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+recipe_id = "stone_axe"
+display_name = "Stone Axe"
+description = "Bind a sharpened stone to a wooden handle."
+category = "Tools"
+ingredients = Array[Dictionary]([{"item_id": "wood", "count": 3}, {"item_id": "stone", "count": 2}])
+result_item_id = "stone_axe"
+result_count = 1
+crafting_time = 1.0
+required_station = ""
+experience_reward = 5
