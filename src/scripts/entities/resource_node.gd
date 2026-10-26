@@ -212,6 +212,10 @@ func deserialize(data: Dictionary) -> void:
 		_respawn_timer = data["respawn_timer"]
 
 	if _is_depleted:
-		_deplete()
+		visible = false
+		collision_layer = 0
+		set_physics_process(false)
 	else:
-		_respawn()
+		visible = true
+		collision_layer = 8
+		set_physics_process(true)
