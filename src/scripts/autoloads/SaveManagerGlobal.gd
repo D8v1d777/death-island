@@ -280,13 +280,17 @@ func _read_save_file(slot: int) -> Dictionary:
 	file.close()
 
 	var json_string = json_bytes.get_string_from_utf8()
-	var parse_result = JSON.parse_string(json_string)
-
-	if parse_result.error != OK:
-		save_corrupted.emit(slot, "JSON parse error: " + parse_result.error_message)
+	var parser := JSON.new()
+	var parse_error: Error = parser.parse(json_string)
+	if parse_error != OK:
+		save_corrupted.emit(slot, "JSON parse error: " + parser.get_error_message())
 		return _attempt_recovery(slot)
 
-	return parse_result
+	if not parser.data is Dictionary:
+		save_corrupted.emit(slot, "Save payload is not a dictionary")
+		return _attempt_recovery(slot)
+
+	return parser.data
 
 func _verify_save_file(path: String) -> bool:
 	if not FileAccess.file_exists(path):
@@ -342,10 +346,11 @@ func _attempt_recovery(slot: int) -> Dictionary:
 				var json_bytes = file.get_buffer(file.get_length() - file.get_position())
 				file.close()
 				var json_string = json_bytes.get_string_from_utf8()
-				var parse_result = JSON.parse_string(json_string)
-				if parse_result.error == OK:
+				var parser := JSON.new()
+				var parse_error: Error = parser.parse(json_string)
+				if parse_error == OK and parser.data is Dictionary:
 					push_warning("Recovered save slot %d from backup %d" % [slot, i])
-					return parse_result
+					return parser.data
 
 	return {}
 
