@@ -1,4 +1,4 @@
-extends RigidBody3D
+extends StaticBody3D
 class_name ResourceNode
 
 signal gathered(item_id: String, count: int)
@@ -98,11 +98,12 @@ func _setup_visual() -> void:
 
 	mesh_instance.material_override = material
 	add_child(mesh_instance)
-	mesh_instance.global_position = Vector3(0, mesh_instance.get_aabb().size.y / 2, 0)
+	mesh_instance.position = Vector3(0, mesh_instance.get_aabb().size.y / 2.0, 0)
 
 	# Add collision shape
 	var collision = CollisionShape3D.new()
 	collision.shape = mesh_instance.mesh.create_trimesh_shape()
+	collision.position = Vector3(0, mesh_instance.get_aabb().size.y / 2.0, 0)
 	add_child(collision)
 
 func can_interact() -> bool:
@@ -141,15 +142,30 @@ func interact(player: Node) -> void:
 	if required_tool != "" and (inventory.has_item(required_tool) or (equipment and equipment.get_equipped(EquipmentComponent.EquipSlot.MAIN_HAND) == required_tool)):
 		bonus = tool_bonus
 
+	var item_weight = _get_item_weight(item_id)
+	var expected_count = max(1, int(base_count * bonus))
+	if inventory and not inventory.can_add_item(item_id, expected_count, item_weight):
+		var hud = player.get_node_or_null("HUD")
+		if hud:
+			hud.interaction_label.text = "Inventory full"
+		return
+
 	var count = ResourceSystemGlobal.gather_resource(self, item_id, base_count, bonus)
+	if inventory and not inventory.add_item(item_id, count, item_weight):
+		push_error("Resource gather was rejected after capacity preflight")
+		return
 
-	if inventory:
-		inventory.add_item(item_id, count)
-
+	_gathers += 1
+	if _gathers >= max_gathers:
+		_deplete()
 	gathered.emit(item_id, count)
 
 	# Visual feedback
 	_play_gather_effect()
+
+func _get_item_weight(p_item_id: String) -> float:
+	var definition = ResourceLoader.load("res://resources/definitions/items/%s.tres" % p_item_id)
+	return definition.weight if definition else 0.1
 
 func _play_gather_effect() -> void:
 	# Simple visual feedback - scale down and up
@@ -169,7 +185,7 @@ func _respawn() -> void:
 	_is_depleted = false
 	_gathers = 0
 	visible = true
-	collision_layer = 16  # ResourceNode layer
+	collision_layer = 8  # ResourceNode is physics layer 4
 	set_physics_process(true)
 	ResourceSystemGlobal.respawn_resource(self)
 
