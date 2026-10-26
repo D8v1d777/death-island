@@ -119,10 +119,11 @@ func interact(player: Node) -> void:
 	if _is_depleted:
 		return
 
+	var inventory = player.get_node_or_null("InventoryComponent")
+	var equipment = player.get_node_or_null("EquipmentComponent")
+
 	# Check tool requirement
 	if required_tool != "":
-		var inventory = player.get_node_or_null("InventoryComponent")
-		var equipment = player.get_node_or_null("EquipmentComponent")
 
 		var has_tool = false
 		if inventory and inventory.has_item(required_tool):
@@ -139,7 +140,7 @@ func interact(player: Node) -> void:
 			return
 
 	var bonus = 1.0
-	if required_tool != "" and (inventory.has_item(required_tool) or (equipment and equipment.get_equipped(EquipmentComponent.EquipSlot.MAIN_HAND) == required_tool)):
+	if required_tool != "" and inventory and (inventory.has_item(required_tool) or (equipment and equipment.get_equipped(EquipmentComponent.EquipSlot.MAIN_HAND) == required_tool)):
 		bonus = tool_bonus
 
 	var item_weight = _get_item_weight(item_id)
