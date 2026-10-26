@@ -99,7 +99,7 @@ jobs:
 
       - name: Setup Godot
         id: godot
-        uses: ./setup-godot
+        uses: ./.github/actions/setup-godot
         with:
           version: ${{ env.GODOT_VERSION }}
           channel: ${{ env.GODOT_CHANNEL }}
