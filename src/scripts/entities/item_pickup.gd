@@ -12,6 +12,9 @@ var _bob_offset: float = 0.0
 
 func _ready() -> void:
 	set_collision_layer_value(6, true)  # Pickup layer
+	contact_monitor = true
+	max_contacts_reported = max(1, max_contacts_reported)
+	body_entered.connect(_on_body_entered)
 	_timer = lifetime
 
 	# Add visual
