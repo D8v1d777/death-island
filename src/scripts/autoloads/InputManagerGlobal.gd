@@ -91,7 +91,9 @@ func is_action_pressed(action: String) -> bool:
 
 func is_action_just_pressed(action: String) -> bool:
 	"""Check if action was just pressed this frame"""
-	return Input.is_action_just_pressed(action) or _is_touch_action_just_pressed(action)
+	var input_just_pressed := Input.is_action_just_pressed(action)
+	var touch_just_pressed := _is_touch_action_just_pressed(action)
+	return input_just_pressed or touch_just_pressed
 
 func is_action_just_released(action: String) -> bool:
 	"""Check if action was just released this frame"""
