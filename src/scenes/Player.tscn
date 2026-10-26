@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/entities/player.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2"]
@@ -6,27 +6,38 @@
 [ext_resource type="Script" path="res://scripts/components/survival_component.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/components/equipment_component.gd" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="6"]
-[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="7"]
+
+[sub_resource type="CapsuleShape3D" id="PlayerShape"]
+radius = 0.5
+height = 1.8
+
+[sub_resource type="CapsuleMesh" id="PlayerMesh"]
+radius = 0.5
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="PlayerMaterial"]
+albedo_color = Color(0.28, 0.34, 0.38, 1)
 
 [node name="Player" type="CharacterBody3D" script=ExtResource("1")]
 collision_layer = 1
 collision_mask = 31
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-shape = SubResource(1)
+shape = SubResource("PlayerShape")
 
-[sub_resource type="CapsuleShape3D" id="1"]
-radius = 0.5
-height = 1.8
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlayerMesh")
+material_override = SubResource("PlayerMaterial")
 
 [node name="CameraPivot" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+position = Vector3(0, 1.4, 0)
 
 [node name="Camera3D" type="Camera3D" parent="CameraPivot"]
-projection = 0
-fov = 75
+position = Vector3(0, 0, 4)
+current = true
+fov = 75.0
 near = 0.1
-far = 1000
+far = 1000.0
 
 [node name="HealthComponent" type="Node" parent="." script=ExtResource("2")]
 max_health = 100.0
@@ -43,4 +54,4 @@ max_stamina = 100.0
 
 [node name="EquipmentComponent" type="Node" parent="." script=ExtResource("5")]
 
-[node name="HUD" type="Node" parent="." instance=ExtResource(6)]
+[node name="HUD" parent="." instance=ExtResource("6")]
