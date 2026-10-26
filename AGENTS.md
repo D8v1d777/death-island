@@ -151,11 +151,11 @@ tests/
 ### Running Tests
 
 ```bash
-# Unit tests (GDScript, no engine)
-godot --headless --script tests/unit/run_tests.gd
+# Run from repository root; the Godot project is under src/
+godot --headless --path src --main-scene res://tests/unit/TestRunner.tscn
 
-# Integration tests (requires Godot headless)
-godot --headless --script tests/integration/run_tests.gd
+# Integration smoke tests (Godot headless)
+godot --headless --path src --main-scene res://tests/integration/TestRunner.tscn
 ```
 
 ### Test Coverage Targets
