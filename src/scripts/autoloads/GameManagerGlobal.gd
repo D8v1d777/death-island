@@ -74,8 +74,48 @@ func _do_change_scene(target_scene_path: String, loading_screen: Node) -> void:
 	if loading_screen and loading_screen.is_inside_tree():
 		loading_screen.queue_free()
 
+	# Spawn player for gameplay scenes
+	_spawn_player_if_needed()
+
 	is_loading = false
 	scene_changed.emit(current_scene_name)
+
+func _spawn_player_if_needed() -> void:
+	if not _current_scene:
+		return
+
+	# Check if player already exists
+	var existing_player = _find_player()
+	if existing_player:
+		return
+
+	# Find spawn point
+	var game_world = _current_scene.get_node_or_null("GameWorld")
+	if not game_world:
+		game_world = _current_scene
+
+	var spawn_marker = game_world.get_node_or_null("PlayerSpawn")
+	var spawn_pos = Vector3(0, 1, 0)
+	if spawn_marker:
+		spawn_pos = spawn_marker.global_position
+
+	# Instantiate player
+	var player_scene = ResourceLoader.load("res://scenes/Player.tscn")
+	if not player_scene:
+		push_error("Player scene not found: res://scenes/Player.tscn")
+		return
+
+	var player = player_scene.instantiate()
+	player.global_position = spawn_pos
+
+	# Add to DynamicObjects or GameWorld
+	var dynamic_objects = game_world.get_node_or_null("DynamicObjects")
+	if dynamic_objects:
+		dynamic_objects.add_child(player)
+	else:
+		game_world.add_child(player)
+
+	LoggerGlobal.info("Player spawned at %s" % spawn_pos, "GAME")
 
 func _instantiate_loading_screen() -> Node:
 	if loading_screen_path.is_empty():
