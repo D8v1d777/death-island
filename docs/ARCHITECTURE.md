@@ -63,8 +63,11 @@ cleanup errors. Actual OpenGL rendering is verified by the render/gallery runner
   cooldown, depletion and respawn; capacity failure does not consume a gather.
 * **QuestSystem**: offered/active/complete progression, prerequisites, inventory and
   kill conditions, trust, recruitment and ending selection. Rewards are transactional.
-* **Companion**: follows the player, assists nearby combat and collects nearby loot.
-  Dedicated carry inventory and gathering orders remain future depth work.
+* **Companion**: explicit Follow/Hold/Gather/Return/Assist orders, interrupted by
+  nearby combat. Four-slot/12 kg carry inventory uses atomic two-inventory transfer;
+  hand gathering shares ResourceNode cooldowns/depletion. Bounded steering cancels
+  blocked orders safely. Commands, positions, carry and task budgets persist in
+  optional version-2 world data; see `audits/COMP-01.md`.
 * **IslandWorld**: map construction, 24-minute day, exploration/travel, nearby stations,
   shelter placement/rest, persistent world snapshots, pooled hit labels and local CSV.
 

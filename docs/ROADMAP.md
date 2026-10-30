@@ -18,12 +18,15 @@ completed shelter art and six README gameplay captures are implemented.
 Automated evidence and build results are recorded in `docs/audits/BUILD_VERIFICATION.md`.
 Do not infer device performance from headless tests or software-rendered screenshots.
 
+COMP-01 utility implementation is verified: bounded carry/gather orders, return
+transactions, combat interruption and persistence. See [acceptance evidence](audits/COMP-01.md).
+
 Still required for the **entire M0–M4 roadmap**:
 
 * M0: verify the rewritten workflow on GitHub after publishing changes.
 * M1: install and play the acceptance loop on the target Android phone, including
   multitouch, lifecycle/backgrounding and real save/relaunch.
-* M2: production-quality terrain/caves and navigation, companion carry/gather depth,
+* M2: production-quality terrain/caves and navigation, companion route/balance playtesting,
   complete equipment-slot content, quest-failure paths and broader balance testing.
 * M3: finished character animation and environment art, music/ambience, richer combat
   feedback, freely repositionable touch controls/text scaling, effect-quality tiers,

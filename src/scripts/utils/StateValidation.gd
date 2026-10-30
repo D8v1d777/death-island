@@ -56,6 +56,8 @@ static func state(data: Dictionary) -> bool:
 	if not valid or not _equipment(player.get("equipment", {})):
 		return false
 	var world: Dictionary = data.world
+	if not companion(world.get("companion", {})):
+		return false
 	if not number(world.get("elapsed", 360.0), 0, 1e9):
 		return false
 	for key in ["resources", "enemies"]:
@@ -66,7 +68,7 @@ static func state(data: Dictionary) -> bool:
 				return false
 			if entry.has("position") and not vector(entry.position):
 				return false
-			for field in ["health", "gathers", "respawn_timer"]:
+			for field in ["health", "gathers", "respawn_timer", "gather_cooldown"]:
 				if entry.has(field) and not number(entry[field], 0, 1e6):
 					return false
 			for field in ["is_depleted", "dead"]:
@@ -124,6 +126,29 @@ static func _equipment(data: Dictionary) -> bool:
 		if not item or not number(durability[key], 0, item.durability):
 			return false
 	return true
+
+
+static func companion(data: Variant) -> bool:
+	if not data is Dictionary:
+		return false
+	if data.is_empty():
+		return true
+	if (
+		not data.get("command") in Companion.COMMANDS
+		or not vector(data.get("position"))
+		or not vector(data.get("hold_position"))
+		or not data.get("inventory") is Dictionary
+		or not data.get("target_id") is String
+		or not number(data.get("task_remaining"), 0, Companion.TASK_SECONDS)
+		or not number(data.get("assist_timer"), 0, Companion.ASSIST_SECONDS)
+	):
+		return false
+	var inventory := InventoryComponent.new()
+	inventory.max_slots = Companion.CARRY_SLOTS
+	inventory.max_weight = Companion.CARRY_WEIGHT
+	var valid := inventory.deserialize(data.inventory)
+	inventory.free()
+	return valid
 
 
 static func _quests(data: Dictionary) -> bool:
