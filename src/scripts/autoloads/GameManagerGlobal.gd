@@ -1,260 +1,322 @@
 extends Node
-
-## Central game state coordinator. Handles scene transitions, pause/resume, game flow.
+## Owns lifecycle and translates UI intent into gameplay-system requests.
 
 signal game_paused
 signal game_resumed
-signal scene_changing(new_scene_path: String)
-signal scene_changed(scene_name: String)
-signal new_game_started
-signal game_loaded(save_slot: int)
-signal game_saved(save_slot: int)
-signal quit_to_main_menu
+signal game_ready
+signal menu_requested(menu: String)
+signal message_posted(message: String)
+signal loading_changed(progress: float)
 
-@export_group("Configuration")
-@export var initial_scene: String = "res://scenes/GameWorld.tscn"
-@export var loading_screen_path: String = ""
+const WORLD_PATH := "res://scenes/GameWorld.tscn"
+const UI_PATH := "res://scenes/HUD.tscn"
+const AUTOSAVE_INTERVAL := 180.0
+const SETTINGS_PATH := "user://settings.cfg"
 
-@export_group("Runtime State (Read-Only)")
-@export var current_scene_name: String = ""
-@export var is_paused: bool = false
-@export var is_loading: bool = false
+var world: Node3D
+var ui: CanvasLayer
+var is_paused := false
+var is_loading := false
+var settings: Dictionary = {
+	"volume": 0.7,
+	"sensitivity": 0.005,
+	"vibration": true,
+	"quality": 1,
+	"controls_scale": 1.0,
+	"controls_opacity": 0.7,
+	"left_handed": false
+}
+var _autosave_timer := 0.0
 
-var _current_scene: Node = null
-var _previous_scene: String = ""
 
 func _ready() -> void:
-	# Ensure we're in the scene tree root
-	if not is_inside_tree():
-		push_error("GameManagerGlobal must be an autoload")
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	InputManagerGlobal.action_requested.connect(handle_action)
+	SaveManagerGlobal.save_corrupted.connect(_on_recovery)
+	_load_settings()
+	call_deferred("_boot")
+
+
+func _boot() -> void:
+	var current := get_tree().current_scene
+	if current and current.scene_file_path == "res://scenes/Main.tscn":
+		_ensure_ui()
+		menu_requested.emit("main")
+
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(world) or is_paused or is_loading:
 		return
+	_autosave_timer += delta
+	if _autosave_timer >= AUTOSAVE_INTERVAL:
+		_autosave_timer = 0
+		save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
 
-	# Load initial scene after tree is ready
-	call_deferred("_load_initial_scene")
 
-func _load_initial_scene() -> void:
-	change_scene(initial_scene)
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_WM_GO_BACK_REQUEST]:
+		if is_instance_valid(world) and not is_loading:
+			save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
+			open_menu("pause")
 
-func change_scene(target_scene_path: String) -> void:
+
+func new_game() -> void:
+	_start_world({})
+
+
+func load_game(slot: int) -> bool:
+	var data := SaveManagerGlobal.load_game(slot)
+	if data.is_empty():
+		message_posted.emit("This save is missing or damaged.")
+		return false
+	_start_world(data)
+	return true
+
+
+func _start_world(data: Dictionary) -> void:
 	if is_loading:
-		push_warning("Scene change already in progress")
 		return
-
-	if _current_scene and _current_scene.is_inside_tree():
-		_previous_scene = current_scene_name
-
 	is_loading = true
-	scene_changing.emit(target_scene_path)
-
-	# Show loading screen if available
-	var loading_screen := _instantiate_loading_screen()
-	if loading_screen:
-		get_tree().root.add_child(loading_screen)
-		loading_screen.show()
-
-	# Use deferred to allow loading screen to show
-	call_deferred("_do_change_scene", target_scene_path, loading_screen)
-
-func _do_change_scene(target_scene_path: String, loading_screen: Node) -> void:
-	var err = get_tree().change_scene_to_file(target_scene_path)
-	if err != OK:
-		push_error("Failed to change scene to: ", target_scene_path, " error: ", err)
-		if loading_screen and loading_screen.is_inside_tree():
-			loading_screen.queue_free()
-		is_loading = false
+	_ensure_ui()
+	menu_requested.emit("loading")
+	InputManagerGlobal.reset()
+	var error := ResourceLoader.load_threaded_request(WORLD_PATH)
+	if error != OK:
+		_load_failed()
 		return
-
-	# Wait for scene to be ready
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	_current_scene = get_tree().current_scene
-	current_scene_name = _current_scene.scene_file_path.get_file()
-
-	if loading_screen and loading_screen.is_inside_tree():
-		loading_screen.queue_free()
-
-	# Spawn player for gameplay scenes
-	_spawn_player_if_needed()
-
+	var progress: Array = []
+	while (
+		ResourceLoader.load_threaded_get_status(WORLD_PATH, progress)
+		== ResourceLoader.THREAD_LOAD_IN_PROGRESS
+	):
+		loading_changed.emit(float(progress[0]) if not progress.is_empty() else 0)
+		await get_tree().process_frame
+	if ResourceLoader.load_threaded_get_status(WORLD_PATH) != ResourceLoader.THREAD_LOAD_LOADED:
+		_load_failed()
+		return
+	var packed := ResourceLoader.load_threaded_get(WORLD_PATH) as PackedScene
+	if is_instance_valid(world):
+		world.free()
+	CraftingSystemGlobal.reset()
+	QuestSystemGlobal.reset()
+	world = packed.instantiate()
+	get_tree().root.add_child(world)
+	if not data.is_empty():
+		world.deserialize(data.world)
+		get_player().deserialize(data.player)
+		QuestSystemGlobal.deserialize(data.get("quests", {}))
+		CraftingSystemGlobal.restore_known(data.get("known_recipes", []))
+	_autosave_timer = 0
 	is_loading = false
-	scene_changed.emit(current_scene_name)
+	is_paused = false
+	get_tree().paused = false
+	apply_settings()
+	menu_requested.emit("")
+	game_ready.emit()
+	if not QuestSystemGlobal.ending.is_empty():
+		open_menu("ending")
+	elif get_player().health_comp.is_dead():
+		open_menu("death")
 
-func _spawn_player_if_needed() -> void:
-	if not _current_scene:
-		return
 
-	# Check if player already exists
-	var existing_player = _find_player()
-	if existing_player:
-		return
+func _load_failed() -> void:
+	is_loading = false
+	menu_requested.emit("main")
+	message_posted.emit("Unable to load the island. Please retry.")
 
-	# Find spawn point
-	var game_world = _current_scene.get_node_or_null("GameWorld")
-	if not game_world:
-		game_world = _current_scene
 
-	var spawn_marker = game_world.get_node_or_null("PlayerSpawn")
-	var spawn_pos = Vector3(0, 1, 0)
-	if spawn_marker:
-		spawn_pos = spawn_marker.global_position
+func _ensure_ui() -> void:
+	if not is_instance_valid(ui):
+		ui = load(UI_PATH).instantiate()
+		ui.name = "UILayer"
+		get_tree().root.add_child(ui)
 
-	# Instantiate player
-	var player_scene = ResourceLoader.load("res://scenes/Player.tscn")
-	if not player_scene:
-		push_error("Player scene not found: res://scenes/Player.tscn")
-		return
 
-	var player = player_scene.instantiate()
-	player.global_position = spawn_pos
-
-	# Add to DynamicObjects or GameWorld
-	var dynamic_objects = game_world.get_node_or_null("DynamicObjects")
-	if dynamic_objects:
-		dynamic_objects.add_child(player)
-	else:
-		game_world.add_child(player)
-
-	LoggerGlobal.info("Player spawned at %s" % spawn_pos, "GAME")
-
-func _instantiate_loading_screen() -> Node:
-	if loading_screen_path.is_empty():
+func get_player() -> Player:
+	if not is_instance_valid(world):
 		return null
-	var packed_scene = ResourceLoader.load(loading_screen_path)
-	if not packed_scene:
-		push_warning("Loading screen not found: ", loading_screen_path)
-		return null
-	return packed_scene.instantiate()
+	return world.get_node_or_null("Player") as Player
+
 
 func pause_game() -> void:
-	if is_paused:
-		return
 	is_paused = true
 	get_tree().paused = true
+	InputManagerGlobal.reset()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	game_paused.emit()
 
+
 func resume_game() -> void:
-	if not is_paused:
+	var player := get_player()
+	if not player or player.health_comp.is_dead() or not QuestSystemGlobal.ending.is_empty():
 		return
 	is_paused = false
 	get_tree().paused = false
+	InputManagerGlobal.reset()
+	menu_requested.emit("")
 	game_resumed.emit()
 
-func toggle_pause() -> void:
-	if is_paused:
-		resume_game()
-	else:
+
+func open_menu(menu: String) -> void:
+	if is_loading:
+		return
+	if is_instance_valid(world):
 		pause_game()
+		if menu == "pause" and not get_player().health_comp.is_dead():
+			save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
+	menu_requested.emit(menu)
 
-func new_game() -> void:
-	# Clear any existing save data for new game
-	SaveManagerGlobal.delete_save(-1)  # -1 = quicksave
-	SaveManagerGlobal.delete_save(0)   # slot 0
 
-	# Reset to initial state
-	change_scene(initial_scene)
-	new_game_started.emit()
-
-func load_game(save_slot: int) -> void:
-	var save_data = SaveManagerGlobal.load_game(save_slot)
-	if not save_data:
-		push_error("Failed to load game from slot: ", save_slot)
+func handle_action(action: String) -> void:
+	if is_loading:
 		return
-
-	# Apply save data to systems
-	_apply_save_data(save_data)
-
-	# Load the scene the player was in
-	var scene_path = save_data.get("scene_path", initial_scene)
-	change_scene(scene_path)
-
-	# Restore player position after scene loads
-	call_deferred("_restore_player_state", save_data)
-
-	game_loaded.emit(save_slot)
-
-func _restore_player_state(save_data: Dictionary) -> void:
-	var player = _find_player()
-	if not player:
-		push_warning("Player not found after scene load")
+	if not get_player():
 		return
-
-	var player_data = save_data.get("player", {})
-	if player_data.is_empty():
-		push_warning("No player data in save")
+	if action in ["pause", "inventory", "crafting", "journal", "map", "settings"]:
+		if is_paused and action == "pause":
+			resume_game()
+		else:
+			open_menu(action)
 		return
+	var player := get_player()
+	if player and not is_paused:
+		player.perform_action(action)
 
-	# Restore transform
-	if player_data.has("position"):
-		player.global_position = Vector3(player_data["position"])
-	if player_data.has("rotation"):
-		player.global_rotation = Vector3(player_data["rotation"])
 
-	# Restore stats via components
-	var health_comp = player.get_node_or_null("HealthComponent")
-	if health_comp:
-		if player_data.has("health"):
-			health_comp.current_health = player_data["health"]
-		if player_data.has("max_health"):
-			health_comp.max_health = player_data["max_health"]
+func save(slot: int, notify: bool = true) -> Error:
+	var result := SaveManagerGlobal.save_game(slot)
+	if notify:
+		message_posted.emit("Game saved." if result == OK else "Save failed. Check free storage.")
+	return result
 
-	var survival_comp = player.get_node_or_null("SurvivalComponent")
-	if survival_comp:
-		if player_data.has("stamina"):
-			survival_comp.stamina = player_data["stamina"]
-		if player_data.has("hunger"):
-			survival_comp.hunger = player_data["hunger"]
-		if player_data.has("thirst"):
-			survival_comp.thirst = player_data["thirst"]
 
-	var inventory_comp = player.get_node_or_null("InventoryComponent")
-	if inventory_comp and player_data.has("inventory"):
-		inventory_comp.deserialize(player_data["inventory"])
+func snapshot() -> Dictionary:
+	var player := get_player()
+	if not player or is_loading or player.health_comp.is_dead():
+		return {}
+	return {
+		"player": player.serialize(),
+		"world": world.serialize(),
+		"quests": QuestSystemGlobal.serialize(),
+		"known_recipes": CraftingSystemGlobal.get_known_recipes()
+	}
 
-	var equipment_comp = player.get_node_or_null("EquipmentComponent")
-	if equipment_comp and player_data.has("equipment"):
-		equipment_comp.deserialize(player_data["equipment"])
-
-func _apply_save_data(save_data: Dictionary) -> void:
-	# Apply world state
-	if save_data.has("world_time"):
-		# TimeOfDayGlobal.set_time(save_data["world_time"])
-		pass
-
-	# Apply inventory - will be restored in _restore_player_state
-	# Apply known recipes
-	if save_data.has("known_recipes"):
-		for recipe_id in save_data["known_recipes"]:
-			CraftingSystemGlobal.learn_recipe(recipe_id)
-
-	# Apply resource nodes
-	if save_data.has("world") and save_data["world"].has("resource_nodes"):
-		ResourceSystemGlobal.deserialize(save_data["world"]["resource_nodes"])
-
-	# Apply quest state
-	if save_data.has("quests"):
-		# QuestSystemGlobal.load_state(save_data["quests"])
-		pass
-
-	# Apply NPC trust
-	if save_data.has("npc_trust"):
-		# NPCTrustGlobal.load_state(save_data["npc_trust"])
-		pass
-
-func _find_player() -> Node:
-	if not _current_scene:
-		return null
-	# Player is typically in GameWorld
-	var game_world = _current_scene.get_node_or_null("GameWorld")
-	if game_world:
-		return game_world.get_node_or_null("Player")
-	return _current_scene.get_node_or_null("Player")
 
 func request_quit_to_main_menu() -> void:
-	quit_to_main_menu.emit()
+	save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
+	if is_instance_valid(world):
+		world.queue_free()
+	world = null
+	get_tree().paused = false
+	is_paused = false
+	InputManagerGlobal.reset()
+	menu_requested.emit("main")
 
-func get_current_scene() -> Node:
-	return _current_scene
 
-func get_previous_scene() -> String:
-	return _previous_scene
+func use_item(item_id: String) -> void:
+	var player := get_player()
+	if player:
+		player.use_item(item_id)
+
+
+func repair_equipment() -> void:
+	var player := get_player()
+	if player:
+		var success := player.equipment_comp.repair(player.inventory_comp)
+		message_posted.emit(
+			"Equipment repaired." if success else "No repair needed or missing materials."
+		)
+
+
+func drop_item(item_id: String) -> void:
+	var player := get_player()
+	if player and player.inventory_comp.has_item(item_id):
+		if world.spawn_pickup(item_id, 1, player.global_position + player._facing * 2):
+			player.inventory_comp.remove_item(item_id)
+
+
+func travel(region_id: String) -> void:
+	if is_instance_valid(world):
+		world.fast_travel(region_id)
+
+
+func complete_quest(choice: String) -> void:
+	var player := get_player()
+	if player:
+		QuestSystemGlobal.complete_quest(choice, player.inventory_comp)
+
+
+func finish_story(choice: String) -> void:
+	var player := get_player()
+	if player:
+		QuestSystemGlobal.finish(choice, player.inventory_comp)
+
+
+func export_telemetry() -> void:
+	if is_instance_valid(world):
+		var result: Error = world.export_telemetry()
+		message_posted.emit(
+			"Saved user://performance.csv" if result == OK else "CSV export failed."
+		)
+
+
+func craft(recipe_id: String) -> void:
+	var player := get_player()
+	if not player:
+		return
+	var recipe := CraftingSystemGlobal.get_recipe(recipe_id)
+	var station: String = world.nearby_station(
+		player.global_position, recipe.required_station if recipe else ""
+	)
+	var result := CraftingSystemGlobal.craft(recipe_id, player.inventory_comp, station)
+	message_posted.emit(
+		(
+			"Crafted " + DataCatalogGlobal.item_name(result.result_item)
+			if result.success
+			else result.reason
+		)
+	)
+	if result.success:
+		player.illustration.play_action(
+			"cook" if recipe.required_station == "campfire" else "craft"
+		)
+		AudioManagerGlobal.play_ui_sfx("success")
+
+
+func update_setting(key: String, value: Variant) -> void:
+	if not settings.has(key):
+		return
+	settings[key] = value
+	apply_settings()
+	var config := ConfigFile.new()
+	for setting in settings:
+		config.set_value("game", setting, settings[setting])
+	if config.save(SETTINGS_PATH) != OK:
+		message_posted.emit("Could not save settings.")
+
+
+func _load_settings() -> void:
+	var config := ConfigFile.new()
+	if config.load(SETTINGS_PATH) == OK:
+		for key in settings:
+			var value: Variant = config.get_value("game", key, settings[key])
+			if typeof(value) == typeof(settings[key]):
+				settings[key] = value
+	apply_settings()
+
+
+func apply_settings() -> void:
+	AudioManagerGlobal.set_bus_volume_linear("Master", clampf(settings.volume, 0, 1))
+	InputManagerGlobal.set_touch_sensitivity(settings.sensitivity)
+	InputManagerGlobal.haptic_feedback_enabled = settings.vibration
+	InputManagerGlobal.control_scale = clampf(settings.controls_scale, 0.8, 1.2)
+	InputManagerGlobal.button_opacity = clampf(settings.controls_opacity, 0.3, 1)
+	InputManagerGlobal.left_handed = settings.left_handed
+	Engine.max_fps = 30 if settings.quality == 0 else 60
+	var player := get_player()
+	if player:
+		player.camera.far = [60.0, 100.0, 140.0][clampi(settings.quality, 0, 2)]
+
+
+func _on_recovery(_slot: int, reason: String) -> void:
+	message_posted.emit(reason)

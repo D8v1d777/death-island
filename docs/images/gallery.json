@@ -1,0 +1,76 @@
+{
+	"captures": [
+		{
+			"action": "walk",
+			"file": "01-wreckshore-walk.webp",
+			"moved_meters": 0.916666269302368,
+			"player_position": [
+				2.55833292007446,
+				0.000839314248878509,
+				45
+			],
+			"sprite_frame": 2
+		},
+		{
+			"action": "gather",
+			"file": "02-jungle-gather.webp",
+			"player_position": [
+				-18,
+				0.000260420143604279,
+				8.80000019073486
+			],
+			"sprite_frame": 4,
+			"wood_after": 4,
+			"wood_before": 0
+		},
+		{
+			"action": "attack",
+			"enemy_health_after": 14,
+			"enemy_health_before": 50,
+			"file": "03-boar-combat.webp",
+			"player_position": [
+				25.5,
+				0.000260420143604279,
+				22
+			],
+			"sprite_frame": 3
+		},
+		{
+			"action": "cook",
+			"cooked_meat": 1,
+			"file": "04-campfire-cooking.webp",
+			"player_position": [
+				1.26666676998138,
+				0.000833609083201736,
+				35
+			],
+			"sprite_frame": 6
+		},
+		{
+			"action": "gather",
+			"file": "05-cave-mining.webp",
+			"ore_after": 2,
+			"ore_before": 0,
+			"player_position": [
+				-19.5,
+				0.000260420143604279,
+				-39
+			],
+			"sprite_frame": 4
+		},
+		{
+			"action": "build",
+			"file": "06-shelter-building.webp",
+			"player_position": [
+				-4.63333368301392,
+				0.000839297368656844,
+				39
+			],
+			"shelter_parts_built": 4,
+			"sprite_frame": 4
+		}
+	],
+	"engine": "4.3-stable (official)",
+	"method": "Live Godot OpenGL; encounter/inventory fixtures; real gameplay actions.",
+	"version": "0.3.0-dev"
+}

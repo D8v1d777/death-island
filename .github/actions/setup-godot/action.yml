@@ -1,138 +1,32 @@
-name: "Setup Godot"
-description: "Installs and configures Godot Engine for CI"
-author: "Death Island Team"
-
-inputs:
-  version:
-    description: "Godot version to install (e.g., '4.3')"
-    required: true
-  channel:
-    description: "Release channel: stable, beta, alpha"
-    required: false
-    default: "stable"
-  platform:
-    description: "Target platform: linux, windows, macos"
-    required: false
-    default: "linux"
-
+name: Setup Godot
+description: Install the pinned Godot 4.3 editor and matching export templates.
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Determine download URL
-      id: url
+    - name: Cache engine and templates
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.local/bin/godot
+          ~/.local/share/godot/export_templates/4.3.stable
+        key: godot-4.3-stable-linux-x86_64-v2
+    - name: Download and verify official artifacts
+      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        VERSION="${{ inputs.version }}"
-        CHANNEL="${{ inputs.channel }}"
-        PLATFORM="${{ inputs.platform }}"
-
-        if [ "$CHANNEL" = "stable" ]; then
-          BASE_URL="https://github.com/godotengine/godot/releases/download"
-          # For stable releases: 4.3 -> 4.3-stable
-          DOWNLOAD_VERSION="${VERSION}-stable"
-        else
-          BASE_URL="https://github.com/godotengine/godot-builds/releases/download"
-          DOWNLOAD_VERSION="${VERSION}-${CHANNEL}"
-        fi
-
-        if [ "$PLATFORM" = "linux" ]; then
-          FILENAME="Godot_v${DOWNLOAD_VERSION}_linux.x86_64.zip"
-        elif [ "$PLATFORM" = "windows" ]; then
-          FILENAME="Godot_v${DOWNLOAD_VERSION}_win64.zip"
-        elif [ "$PLATFORM" = "macos" ]; then
-          FILENAME="Godot_v${DOWNLOAD_VERSION}_macos.universal.zip"
-        else
-          echo "Unsupported platform: $PLATFORM"
-          exit 1
-        fi
-
-        DOWNLOAD_URL="${BASE_URL}/${DOWNLOAD_VERSION}/${FILENAME}"
-        echo "download_url=${DOWNLOAD_URL}" >> $GITHUB_OUTPUT
-        echo "filename=${FILENAME}" >> $GITHUB_OUTPUT
-        echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-    - name: Download Godot
+        set -euo pipefail
+        BASE=https://github.com/godotengine/godot-builds/releases/download/4.3-stable
+        mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/bin" "$HOME/.local/share/godot/export_templates"
+        cd "$RUNNER_TEMP/godot"
+        curl --fail --location --retry 3 "$BASE/SHA512-SUMS.txt" -o SHA512-SUMS.txt
+        curl --fail --location --retry 3 "$BASE/Godot_v4.3-stable_linux.x86_64.zip" -o Godot_v4.3-stable_linux.x86_64.zip
+        curl --fail --location --retry 3 "$BASE/Godot_v4.3-stable_export_templates.tpz" -o Godot_v4.3-stable_export_templates.tpz
+        sha512sum --check --ignore-missing SHA512-SUMS.txt
+        unzip -q Godot_v4.3-stable_linux.x86_64.zip
+        install -m 755 Godot_v4.3-stable_linux.x86_64 "$HOME/.local/bin/godot"
+        unzip -q Godot_v4.3-stable_export_templates.tpz
+        mv templates "$HOME/.local/share/godot/export_templates/4.3.stable"
+    - name: Add engine to PATH
       shell: bash
-      run: |
-        DOWNLOAD_URL="${{ steps.url.outputs.download_url }}"
-        FILENAME="${{ steps.url.outputs.filename }}"
-
-        echo "Downloading Godot from: $DOWNLOAD_URL"
-        curl -L -o "/tmp/${FILENAME}" "$DOWNLOAD_URL"
-
-        if [ ! -f "/tmp/${FILENAME}" ]; then
-          echo "Failed to download Godot"
-          exit 1
-        fi
-
-        echo "Downloaded successfully"
-
-    - name: Extract Godot
-      shell: bash
-      run: |
-        FILENAME="${{ steps.url.outputs.filename }}"
-        INSTALL_DIR="${HOME}/.local/bin"
-
-        mkdir -p "$INSTALL_DIR"
-
-        if [[ "$FILENAME" == *.zip ]]; then
-          unzip -q "/tmp/${FILENAME}" -d "/tmp/godot_extract"
-
-          # Find the executable
-          if [ "${{ inputs.platform }}" = "linux" ]; then
-            EXECUTABLE=$(find /tmp/godot_extract -name "Godot_v*" -type f -executable | head -1)
-            if [ -z "$EXECUTABLE" ]; then
-              EXECUTABLE=$(find /tmp/godot_extract -name "godot*" -type f -executable | head -1)
-            fi
-            cp "$EXECUTABLE" "${INSTALL_DIR}/godot"
-            chmod +x "${INSTALL_DIR}/godot"
-          elif [ "${{ inputs.platform }}" = "windows" ]; then
-            EXECUTABLE=$(find /tmp/godot_extract -name "Godot_v*.exe" -type f | head -1)
-            cp "$EXECUTABLE" "${INSTALL_DIR}/godot.exe"
-          elif [ "${{ inputs.platform }}" = "macos" ]; then
-            EXECUTABLE=$(find /tmp/godot_extract -name "Godot.app" -type d | head -1)
-            cp -r "$EXECUTABLE" "/Applications/Godot.app"
-            ln -sf "/Applications/Godot.app/Contents/MacOS/Godot" "${INSTALL_DIR}/godot"
-          fi
-        fi
-
-        echo "Godot installed to $INSTALL_DIR"
-
-    - name: Add Godot to PATH
-      shell: bash
-      run: |
-        echo "${HOME}/.local/bin" >> $GITHUB_PATH
-
-    - name: Verify Godot installation
-      shell: bash
-      run: |
-        godot --version
-
-    - name: Download export templates
-      shell: bash
-      run: |
-        VERSION="${{ steps.url.outputs.version }}"
-        CHANNEL="${{ inputs.channel }}"
-
-        if [ "$CHANNEL" = "stable" ]; then
-          TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/${VERSION}-stable/Godot_v${VERSION}-stable_export_templates.tpz"
-        else
-          TEMPLATE_URL="https://github.com/godotengine/godot-builds/releases/download/${VERSION}-${CHANNEL}/Godot_v${VERSION}-${CHANNEL}_export_templates.tpz"
-        fi
-
-        TEMPLATE_DIR="${HOME}/.local/share/godot/export_templates/${VERSION}.${CHANNEL}"
-        mkdir -p "$TEMPLATE_DIR"
-
-        echo "Downloading export templates from: $TEMPLATE_URL"
-        curl -L -o "/tmp/templates.tpz" "$TEMPLATE_URL"
-
-        if [ -f "/tmp/templates.tpz" ]; then
-          unzip -q "/tmp/templates.tpz" -d "$TEMPLATE_DIR"
-          echo "Export templates installed to $TEMPLATE_DIR"
-        else
-          echo "Warning: Could not download export templates"
-        fi
-
-branding:
-  icon: "download"
-  color: "green"
+      run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"

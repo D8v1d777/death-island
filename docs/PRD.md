@@ -31,7 +31,7 @@ Death Island is an atmospheric, mature survival RPG about isolation, adaptation,
 
 ## Feature Requirements
 
-### M0 — Foundation (Current)
+### M0 — Foundation
 - [ ] GitHub repository with CI/CD
 - [ ] Godot project booting to main scene
 - [ ] Basic project structure documented
@@ -181,6 +181,9 @@ The following scenario must work end-to-end on target device:
 - NDK r26+ (for ARM64)
 
 ## Milestone Timeline (Estimates)
+
+The current prototype implementation and outstanding validation work are tracked
+in `ROADMAP.md`; the checklists in this PRD remain full-product requirements.
 
 | Milestone | Duration | Dependencies |
 |-----------|----------|--------------|

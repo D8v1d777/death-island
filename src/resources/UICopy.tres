@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="UICopy" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/UICopy.gd" id="script"]
+[resource]
+script = ExtResource("script")
+text = {
+"guide": "TOUCH\nLeft joystick moves; drag the right side vertically to zoom. Use GATHER/TALK near objects. Attack, Heavy, Dodge and hold Sprint on the right.\n\nKEYBOARD / MOUSE\nWASD move · E interact · LMB attack · RMB heavy · Space dodge · Shift sprint\nFixed angled camera · Wheel zoom · Tab pack · C craft · J quests · Esc pause\n1 eat · 2 drink · 3 bandage · 4 equip best weapon\n\nGAMEPAD\nLeft stick move · Right stick vertically zooms · A interact · X attack · Y heavy · B dodge\nStart pause · Back inventory. D-pad navigates menus; A confirms.\n\nSURVIVE\nGather wood and stone by hand, craft and equip an axe. Build a campfire to cook meat, a workbench for armor, and a forge for iron. Shelter parts attach to a nearby foundation. Complete Mara's three quests and repair the beach beacon.",
+"intro": "Explore five island regions, gather and craft, face the ruins, and decide who makes it home. An offline survival adventure.",
+"crafting": "Recipes consume materials only when the finished item fits. Build and stand near stations for advanced recipes.",
+"map": "NORTH\nCave (NW) — Ruins (NE)\nJungle (W) — Cliffs (E)\nWreckshore / Mara / Beacon (S)\n\nDiscover a region on foot to unlock its travel marker. Travel is blocked near enemies.",
+"beacon": "The distress beacon is broken. Work with Mara to retrieve the radio parts and the ruins' signal crystal."
+}

@@ -1,15 +1,13 @@
-[gd_resource type="Resource" load_steps=2 format=3
-
+[gd_resource type="Resource" script_class="ItemDefinition" load_steps=2 format=3]
 [ext_resource type="Script" path="res://scripts/data/item_definition.gd" id="1"]
-
 [resource]
 script = ExtResource("1")
-item_id: "stone_axe"
-display_name: "Stone Axe"
-description: "A basic axe made from wood and stone. Increases wood gathering speed."
-icon_path: ""
-stack_size: 1
-weight: 2.0
-item_type: 1
-rarity: 1
-sell_price: 10
+item_id = "stone_axe"
+display_name = "Stone Axe"
+description = "Equip to gather twice as much wood and mine ore. Repair with stone."
+stack_size = 1
+weight = 2.0
+item_type = 1
+damage = 22.0
+durability = 60
+equipment_slot = "main_hand"

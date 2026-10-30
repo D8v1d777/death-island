@@ -7,6 +7,7 @@ import.cfg
 # Build artifacts
 export/
 build/
+src/android/
 *.apk
 *.aab
 *.exe

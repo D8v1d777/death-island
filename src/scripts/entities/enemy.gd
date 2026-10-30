@@ -1,255 +1,170 @@
-extends CharacterBody3D
 class_name Enemy
+extends CharacterBody3D
+## Readable windup/recovery AI. Defeated enemies retain stable save identities.
 
-signal health_changed(current: float, max: float)
-signal died
-signal state_changed(new_state: String)
-signal detected_player(player: Node)
+enum AIState { IDLE, PATROL, CHASE, WINDUP, ATTACK, RECOVER, DEAD }
 
-enum AIState {
-	IDLE,
-	PATROL,
-	CHASE,
-	ATTACK,
-	FLEE,
-	DEAD
-}
+const GRAVITY := 20.0
+const RESPAWN_SECONDS := 240.0
 
 @export var enemy_definition: EnemyDefinition
-@export var patrol_points: Array[Vector3] = []
+
+var _state := AIState.PATROL
+var _timer := 0.0
+var _home := Vector3.ZERO
+var _wander := Vector3.ZERO
+var _attack_direction := Vector3.ZERO
+var _knockback := Vector3.ZERO
+var _respawn_timer := 0.0
+var _body: Sprite3D
+var _title: Label3D
 
 @onready var health_comp: HealthComponent = $HealthComponent
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var visual: Node3D = $Visual
 
-var _state: AIState = AIState.IDLE
-var _target: Node = null
-var _patrol_index: int = 0
-var _attack_timer: float = 0.0
-var _state_timer: float = 0.0
-var _home_position: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
-	if enemy_definition:
-		health_comp.max_health = enemy_definition.max_health
-		health_comp.current_health = enemy_definition.max_health
-
-	health_comp.health_changed.connect(_on_health_changed)
-	health_comp.died.connect(_on_died)
-
-	_home_position = global_position
-	_state = AIState.IDLE
-	state_changed.emit("idle")
-
 	add_to_group("enemies")
+	_home = global_position
+	_wander = _home + Vector3(2, 0, 2)
+	health_comp.max_health = enemy_definition.max_health
+	health_comp.current_health = enemy_definition.max_health
+	health_comp.died.connect(_on_died)
+	var height := 4.2 if enemy_definition.behavior == "guard" else 2.2
+	_body = IllustratedArt.sprite(visual, enemy_definition.enemy_id, height)
+	IllustratedArt.shadow(visual, 2.2)
+	LowPoly.collision(
+		self, enemy_definition.body_size, Vector3(0, enemy_definition.body_size.y / 2, 0)
+	)
+	_title = LowPoly.label(
+		self, enemy_definition.display_name, IllustratedArt.SCREEN_UP * height, Color("eebc93")
+	)
+
 
 func _physics_process(delta: float) -> void:
-	if health_comp.is_dead():
+	if _state == AIState.DEAD:
+		if enemy_definition.behavior != "guard":
+			_respawn_timer -= delta
+			if _respawn_timer <= 0:
+				_respawn()
 		return
-
-	_attack_timer = max(0.0, _attack_timer - delta)
-	_state_timer -= delta
-
-	_update_ai(delta)
-	_handle_movement(delta)
-
-func _update_ai(delta: float) -> void:
-	if not enemy_definition:
+	var player := GameManagerGlobal.get_player()
+	if not player or player.health_comp.is_dead():
 		return
-
-	var player = _find_player()
-	var distance_to_player = _target.distance_to(global_position) if _target else INF
-
+	_timer -= delta
+	var offset := player.global_position - global_position
+	var distance := offset.length()
+	var direction := Vector3.ZERO
+	var speed := enemy_definition.move_speed
+	_title.visible = distance < 14
 	match _state:
-		AIState.IDLE:
-			if player and distance_to_player <= enemy_definition.detection_range:
+		AIState.IDLE, AIState.PATROL:
+			if distance < enemy_definition.detection_range:
 				_state = AIState.CHASE
-				_target = player
-				state_changed.emit("chase")
-				detected_player.emit(player)
-			elif _state_timer <= 0.0:
+			elif enemy_definition.behavior != "ambush":
+				if global_position.distance_to(_wander) < 0.7:
+					_wander = _home + Vector3(randf_range(-3, 3), 0, randf_range(-3, 3))
+				direction = (_wander - global_position).normalized()
+				speed *= 0.4
+		AIState.CHASE:
+			if distance > enemy_definition.detection_range * 1.8:
 				_state = AIState.PATROL
-				state_changed.emit("patrol")
-				_state_timer = randf_range(3.0, 8.0)
-
-		AIState.PATROL:
-			if player and distance_to_player <= enemy_definition.detection_range:
-				_state = AIState.CHASE
-				_target = player
-				state_changed.emit("chase")
-				detected_player.emit(player)
-			elif _state_timer <= 0.0:
-				_state = AIState.IDLE
-				state_changed.emit("idle")
-				_state_timer = randf_range(2.0, 5.0)
-
-		AIState.CHASE:
-			if not player or distance_to_player > enemy_definition.detection_range * 1.5:
-				_state = AIState.IDLE
-				_target = null
-				state_changed.emit("idle")
-				_state_timer = randf_range(2.0, 5.0)
-			elif distance_to_player <= enemy_definition.attack_range:
-				_state = AIState.ATTACK
-				state_changed.emit("attack")
-
-		AIState.ATTACK:
-			if not player or distance_to_player > enemy_definition.attack_range * 1.2:
-				_state = AIState.CHASE
-				state_changed.emit("chase")
-			elif _attack_timer <= 0.0:
-				_attack()
-				_attack_timer = enemy_definition.attack_cooldown
-
-		AIState.FLEE:
-			if distance_to_player > enemy_definition.detection_range:
-				_state = AIState.IDLE
-				state_changed.emit("idle")
-				_state_timer = randf_range(2.0, 5.0)
-
-func _handle_movement(delta: float) -> void:
-	var move_dir = Vector3.ZERO
-	var speed = enemy_definition.move_speed if enemy_definition else 3.0
-
-	match _state:
-		AIState.PATROL:
-			if patrol_points.size() > 0:
-				var target_point = patrol_points[_patrol_index]
-				move_dir = (target_point - global_position).normalized()
-				move_dir.y = 0
-
-				if global_position.distance_to(target_point) < 1.0:
-					_patrol_index = (_patrol_index + 1) % patrol_points.size()
+			elif distance < enemy_definition.attack_range + 0.6:
+				_state = AIState.WINDUP
+				_timer = enemy_definition.windup
+				_attack_direction = offset.normalized()
+				_set_color(Color("f09a4b"))
 			else:
-				# Random wander
-				var wander_target = _home_position + Vector3(randf_range(-enemy_definition.patrol_radius, enemy_definition.patrol_radius), 0, randf_range(-enemy_definition.patrol_radius, enemy_definition.patrol_radius))
-				move_dir = (wander_target - global_position).normalized()
-				move_dir.y = 0
-
-				if global_position.distance_to(wander_target) < 1.0:
-					_state = AIState.IDLE
-					_state_timer = randf_range(2.0, 5.0)
-
-		AIState.CHASE:
-			if _target:
-				move_dir = (_target.global_position - global_position).normalized()
-				move_dir.y = 0
-
+				direction = offset.normalized()
+				if enemy_definition.behavior == "circle" and distance < 5:
+					direction = direction.rotated(Vector3.UP, 0.55)
+		AIState.WINDUP:
+			if _timer <= 0:
+				_state = AIState.ATTACK
+				_timer = 0.2
 		AIState.ATTACK:
-			# Stop moving during attack
-			move_dir = Vector3.ZERO
-
-		AIState.FLEE:
-			if _target:
-				move_dir = (global_position - _target.global_position).normalized()
-				move_dir.y = 0
-				speed *= 1.5
-
-	if move_dir != Vector3.ZERO:
-		velocity.x = move_dir.x * speed
-		velocity.z = move_dir.z * speed
-		look_at(global_position + move_dir, Vector3.UP)
-	else:
-		velocity.x = lerp(velocity.x, 0.0, 10.0 * delta)
-		velocity.z = lerp(velocity.z, 0.0, 10.0 * delta)
-
-	# Gravity
-	if not is_on_floor():
-		velocity.y -= 9.8 * delta
-	else:
-		velocity.y = 0.0
-
+			if enemy_definition.behavior == "charge":
+				direction = _attack_direction
+				speed *= 2
+			if _timer <= 0:
+				if distance <= enemy_definition.attack_range + 0.6:
+					CombatSystemGlobal.apply_damage(
+						self,
+						player,
+						enemy_definition.attack_damage,
+						player.equipment_comp.armor(),
+						0
+					)
+				_state = AIState.RECOVER
+				_timer = enemy_definition.attack_cooldown
+				_set_color(enemy_definition.tint)
+		AIState.RECOVER:
+			if _timer <= 0:
+				_state = AIState.CHASE
+	_knockback = _knockback.move_toward(Vector3.ZERO, delta * 15)
+	direction.y = 0
+	velocity.x = direction.x * speed + _knockback.x
+	velocity.z = direction.z * speed + _knockback.z
+	velocity.y = -0.5 if is_on_floor() else velocity.y - GRAVITY * delta
 	move_and_slide()
+	if direction.length_squared() > 0.1:
+		_body.flip_h = direction.x < 0
+	if global_position.y < -5:
+		global_position = _home
 
-func _attack() -> void:
-	if not _target:
-		return
 
-	var damage = enemy_definition.attack_damage if enemy_definition else 10.0
-	var result = CombatSystemGlobal.apply_damage(self, _target, damage, 0.0)
+func _set_color(color: Color) -> void:
+	_body.modulate = Color.WHITE if color == enemy_definition.tint else color
 
-	# Play attack animation
-	if animation_player and animation_player.has_animation("attack"):
-		animation_player.play("attack")
 
-func _find_player() -> Node:
-	var game_world = get_tree().root.get_node_or_null("GameWorld")
-	if game_world:
-		return game_world.get_node_or_null("Player")
-	return null
+func knockback(force: Vector3) -> void:
+	_knockback = force
 
-func _on_health_changed(current: float, max: float) -> void:
-	health_changed.emit(current, max)
-
-	# Flee at low health
-	if current > 0 and current / max < 0.25 and _state != AIState.FLEE:
-		_state = AIState.FLEE
-		state_changed.emit("flee")
 
 func _on_died() -> void:
 	_state = AIState.DEAD
-	state_changed.emit("dead")
-
-	# Drop loot
-	if enemy_definition:
-		_drop_loot()
-
-	# Disable collision and movement
+	_respawn_timer = RESPAWN_SECONDS
+	visible = false
 	collision_layer = 0
 	collision_mask = 0
-	set_physics_process(false)
+	QuestSystemGlobal.record_kill(enemy_definition.enemy_id)
+	for drop in enemy_definition.loot_table:
+		if randf() <= float(drop.chance):
+			GameManagerGlobal.world.spawn_pickup(
+				drop.item_id,
+				int(drop.count),
+				global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6))
+			)
 
-	# Play death animation
-	if animation_player and animation_player.has_animation("death"):
-		animation_player.play("death")
-		await animation_player.animation_finished
 
-	died.emit()
-	queue_free()
+func _respawn() -> void:
+	global_position = _home
+	health_comp.deserialize({"current_health": enemy_definition.max_health})
+	_state = AIState.PATROL
+	visible = true
+	collision_layer = 2
+	collision_mask = 25
+	_set_color(enemy_definition.tint)
 
-func _drop_loot() -> void:
-	if not enemy_definition:
-		return
-
-	for loot in enemy_definition.loot_table:
-		if randf() < loot.chance:
-			var count = loot.count
-			# Spawn pickup at position
-			var pickup_scene = ResourceLoader.load("res://scenes/ItemPickup.tscn")
-			if pickup_scene:
-				var pickup = pickup_scene.instantiate()
-				pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.5, randf_range(-0.5, 0.5))
-				pickup.set_item(loot.item_id, count)
-				get_parent().add_child(pickup)
 
 func get_state() -> AIState:
 	return _state
 
+
 func serialize() -> Dictionary:
 	return {
-		"position": [global_position.x, global_position.y, global_position.z],
+		"position": StateValidation.array3(global_position),
 		"health": health_comp.current_health,
-		"state": _state,
-		"patrol_index": _patrol_index
+		"dead": _state == AIState.DEAD,
+		"respawn_timer": maxf(0, _respawn_timer)
 	}
 
-func deserialize(data: Dictionary) -> void:
-	if data.has("position"):
-		global_position = Vector3(data["position"])
-		_home_position = global_position
-	if data.has("health"):
-		health_comp.current_health = data["health"]
-	if data.has("state"):
-		_state = data["state"]
-		state_changed.emit(_state_to_string(_state))
-	if data.has("patrol_index"):
-		_patrol_index = data["patrol_index"]
 
-func _state_to_string(state: AIState) -> String:
-	match state:
-		AIState.IDLE: return "idle"
-		AIState.PATROL: return "patrol"
-		AIState.CHASE: return "chase"
-		AIState.ATTACK: return "attack"
-		AIState.FLEE: return "flee"
-		AIState.DEAD: return "dead"
-		_: return "unknown"
+func deserialize(data: Dictionary) -> void:
+	global_position = StateValidation.vec3(data.get("position", StateValidation.array3(_home)))
+	health_comp.deserialize({"current_health": data.get("health", enemy_definition.max_health)})
+	_state = AIState.DEAD if data.get("dead", false) else AIState.PATROL
+	_respawn_timer = clampf(float(data.get("respawn_timer", 0)), 0, RESPAWN_SECONDS)
+	visible = _state != AIState.DEAD
+	collision_layer = 2 if visible else 0
+	collision_mask = 25 if visible else 0

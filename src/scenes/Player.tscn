@@ -1,46 +1,39 @@
-[gd_scene load_steps=8 format=3
-
-[ext_resource type="Script" path="res://scripts/entities/player.gd" id="1"]
-[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/components/inventory_component.gd" id="3"]
-[ext_resource type="Script" path="res://scripts/components/survival_component.gd" id="4"]
-[ext_resource type="Script" path="res://scripts/components/equipment_component.gd" id="5"]
-[ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="6"]
-[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="7"]
-
-[node name="Player" type="CharacterBody3D" script=ExtResource("1")]
-collision_layer = 1
-collision_mask = 31
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-shape = SubResource(1)
-
-[sub_resource type="CapsuleShape3D" id="1"]
-radius = 0.5
+[gd_scene load_steps=7 format=3]
+[ext_resource type="Script" path="res://scripts/entities/player.gd" id="player"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="health"]
+[ext_resource type="Script" path="res://scripts/components/inventory_component.gd" id="inventory"]
+[ext_resource type="Script" path="res://scripts/components/survival_component.gd" id="survival"]
+[ext_resource type="Script" path="res://scripts/components/equipment_component.gd" id="equipment"]
+[sub_resource type="CapsuleShape3D" id="shape"]
+radius = 0.35
 height = 1.8
 
+[node name="Player" type="CharacterBody3D"]
+collision_layer = 1
+collision_mask = 26
+script = ExtResource("player")
+[node name="Collision" type="CollisionShape3D" parent="."]
+position = Vector3(0,0.9,0)
+shape = SubResource("shape")
+[node name="Visual" type="Node3D" parent="."]
 [node name="CameraPivot" type="Node3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
-
-[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
-projection = 0
-fov = 75
-near = 0.1
-far = 1000
-
-[node name="HealthComponent" type="Node" parent="." script=ExtResource("2")]
-max_health = 100.0
-current_health = 100.0
-
-[node name="InventoryComponent" type="Node" parent="." script=ExtResource("3")]
-max_slots = 20
-max_weight = 100.0
-
-[node name="SurvivalComponent" type="Node" parent="." script=ExtResource("4")]
-max_hunger = 100.0
-max_thirst = 100.0
-max_stamina = 100.0
-
-[node name="EquipmentComponent" type="Node" parent="." script=ExtResource("5")]
-
-[node name="HUD" type="Node" parent="." instance=ExtResource(6)]
+position = Vector3(0,1.5,0)
+rotation = Vector3(-0.785398,0,0)
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraPivot"]
+spring_length = 30.0
+collision_mask = 0
+margin = 0.2
+[node name="Camera3D" type="Camera3D" parent="CameraPivot/SpringArm3D"]
+current = true
+projection = 1
+size = 14.0
+fov = 65.0
+far = 100.0
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("health")
+[node name="InventoryComponent" type="Node" parent="."]
+script = ExtResource("inventory")
+[node name="SurvivalComponent" type="Node" parent="."]
+script = ExtResource("survival")
+[node name="EquipmentComponent" type="Node" parent="."]
+script = ExtResource("equipment")

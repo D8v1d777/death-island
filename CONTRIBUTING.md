@@ -55,7 +55,7 @@ refactor: extract combat logic into separate module
 ### GDScript Style
 
 - Follow the [official GDScript style guide](https://docs.godotengine.org/en/stable/tutorials/scripting/gdscript/gdscript_styleguide.html)
-- Use 4-space indentation (no tabs)
+- Use gdformat's tab indentation (see ADR 001)
 - PascalCase for class names, snake_case for variables/functions
 - Type hints required for all public APIs
 - Document public classes and functions with docstrings
@@ -73,7 +73,7 @@ refactor: extract combat logic into separate module
 - Unit tests for pure logic (stat calculations, crafting, inventory)
 - Integration tests for system interactions
 - Headless Godot tests where possible
-- Run tests before committing: `./gradlew testDebugUnitTest`
+- Run tests before committing: `python3 tools/check.py`
 
 ### Performance
 

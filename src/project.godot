@@ -1,153 +1,73 @@
-; Engine configuration for Death Island
-; Godot 4.3+
+config_version=5
 
 [application]
 config/name="Death Island"
-config/description="Atmospheric survival RPG for Android"
-config/icon="res://assets/icon.png"
+config/description="An offline survival adventure about trust and escape."
 run/main_scene="res://scenes/Main.tscn"
-config/features=PackedStringArray("PCK", "Godot 4.3")
-config/version="0.1.0-dev"
-
-[display]
-window/size/viewport_width=1280
-window/size/viewport_height=720
-window/size/resizable=true
-window/size/fullscreen=false
-window/size/borderless=false
-window/size/always_on_top=false
-window/per_pixel_transparency/allowed=false
-window/per_pixel_transparency/enabled=false
-window/mouse/cursor_visible=true
-window/vsync_mode=1
-
-[rendering]
-; 0 = Compatibility, 1 = Forward+
-rendering/rendering_method=0
-rendering/quality/filters/quality=1
-rendering/quality/filters/anisotropic_filter_level=2
-rendering/quality/shadows/enabled=false
-rendering/quality/reflections/enabled=false
-rendering/quality/ao/enabled=false
-rendering/quality/gi/enabled=false
-rendering/quality/bloom/enabled=false
-rendering/quality/dof/enabled=false
-rendering/quality/motion_blur/enabled=false
-rendering/quality/sdfgi/enabled=false
-rendering/quality/taa/enabled=false
-rendering/quality/depth_prepass/enabled=false
-rendering/threads/thread_model=1
-rendering/limits/max_lights_per_object=4
-rendering/limits/max_directional_lights=1
-rendering/environment/defaults/default_clear_color=Color(0.1, 0.1, 0.12, 1)
-
-[physics]
-physics/3d/physics_engine="JoltPhysics3D"
-physics/3d/solver_iterations=8
-physics/common/physics_ticks_per_second=60
-
-[input]
-# InputMap actions for Death Island
-input_map/action_move_forward=PackedStringArray("W", "GamepadLeftStickUp")
-input_map/action_move_backward=PackedStringArray("S", "GamepadLeftStickDown")
-input_map/action_move_left=PackedStringArray("A", "GamepadLeftStickLeft")
-input_map/action_move_right=PackedStringArray("D", "GamepadRightStickRight")
-input_map/action_camera_horizontal=PackedStringArray("MouseX", "GamepadRightStickX")
-input_map/action_camera_vertical=PackedStringArray("MouseY", "GamepadRightStickY")
-input_map/action_attack_light=PackedStringArray("MouseButtonLeft", "GamepadFaceRight")
-input_map/action_attack_heavy=PackedStringArray("MouseButtonRight", "GamepadFaceDown")
-input_map/action_dodge=PackedStringArray("Shift", "GamepadFaceLeft")
-input_map/action_interact=PackedStringArray("E", "GamepadFaceUp")
-input_map/action_inventory=PackedStringArray("Tab", "GamepadStart")
-input_map/action_pause=PackedStringArray("Escape", "GamepadBack")
-
-[layer_names]
-3d_physics/layer_1="Player"
-3d_physics/layer_2="Enemy"
-3d_physics/layer_3="NPC"
-3d_physics/layer_4="ResourceNode"
-3d_physics/layer_5="WorldGeometry"
-3d_physics/layer_6="Projectile"
-3d_physics/layer_7="Trigger"
-3d_physics/layer_8="Companion"
-3d_render/layer_1="World"
-3d_render/layer_2="Characters"
-3d_render/layer_3="Effects"
-3d_render/layer_4="UI3D"
-2d_physics/layer_1="UI"
-2d_physics/layer_2="TouchInput"
-2d_render/layer_1="Background"
-2d_render/layer_2="GameUI"
-2d_render/layer_3="Overlay"
-2d_render/layer_4="Debug"
+config/features=PackedStringArray("4.3", "GL Compatibility")
+config/icon="res://assets/Icon.svg"
+config/version="0.3.0-dev"
 
 [autoload]
-GameManagerGlobal="*res://scripts/autoloads/GameManagerGlobal.gd"
-SaveManagerGlobal="*res://scripts/autoloads/SaveManagerGlobal.gd"
-AudioManagerGlobal="*res://scripts/autoloads/AudioManagerGlobal.gd"
-InputManagerGlobal="*res://scripts/autoloads/InputManagerGlobal.gd"
 LoggerGlobal="*res://scripts/autoloads/LoggerGlobal.gd"
+DataCatalogGlobal="*res://scripts/autoloads/DataCatalogGlobal.gd"
+InputManagerGlobal="*res://scripts/autoloads/InputManagerGlobal.gd"
+AudioManagerGlobal="*res://scripts/autoloads/AudioManagerGlobal.gd"
 CraftingSystemGlobal="*res://scripts/systems/crafting_system_global.gd"
 CombatSystemGlobal="*res://scripts/systems/combat_system_global.gd"
 ResourceSystemGlobal="*res://scripts/systems/resource_system_global.gd"
 SurvivalSystemGlobal="*res://scripts/systems/survival_system_global.gd"
+QuestSystemGlobal="*res://scripts/systems/QuestSystemGlobal.gd"
+SaveManagerGlobal="*res://scripts/autoloads/SaveManagerGlobal.gd"
+GameManagerGlobal="*res://scripts/autoloads/GameManagerGlobal.gd"
 
-[editor]
-editor/asset_library/use_certificates_validation=true
-editor/interface/language="en"
-editor/debugger/profiler/frame_data_history_size=1000
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=0
 
-[export]
-export/presets=[
-{
-"name": "Android",
-"platform": "Android",
-"runnable": true,
-"dedicated_server": false,
-"export_path": "build/death-island.apk",
-"export_filter": "all_resources",
-"include_filter": "",
-"exclude_filter": "",
-"export_with_debug": true,
-"script_encryption_key": "",
-"custom_template/debug": "",
-"custom_template/release": "",
-"icon": "res://assets/icon.png",
-"permissions": [
-"android.permission.VIBRATE",
-"android.permission.WAKE_LOCK"
-],
-"features": "",
-"opengl_es3": true,
-"architectures": ["arm64-v8a"],
-"min_sdk": 24,
-"target_sdk": 35,
-"max_sdk": 0,
-"screen_support/small": true,
-"screen_support/normal": true,
-"screen_support/large": true,
-"screen_support/xlarge": true,
-"screen_orientation": "landscape",
-"version_code": 1,
-"version_name": "0.1.0-dev",
-"keystore/debug": "res://keystore/debug.keystore",
-"keystore/release": "",
-"keystore/debug_user": "androiddebugkey",
-"keystore/debug_password": "android",
-"keystore/release_user": "",
-"keystore/release_password": ""
-}
-]
+[input]
+move_forward={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":87),Object(InputEventJoypadMotion,"axis":1,"axis_value":-1.0)]}
+move_backward={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":83),Object(InputEventJoypadMotion,"axis":1,"axis_value":1.0)]}
+move_left={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":65),Object(InputEventJoypadMotion,"axis":0,"axis_value":-1.0)]}
+move_right={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":68),Object(InputEventJoypadMotion,"axis":0,"axis_value":1.0)]}
+look_left={"deadzone":0.2,"events":[Object(InputEventJoypadMotion,"axis":2,"axis_value":-1.0)]}
+look_right={"deadzone":0.2,"events":[Object(InputEventJoypadMotion,"axis":2,"axis_value":1.0)]}
+look_up={"deadzone":0.2,"events":[Object(InputEventJoypadMotion,"axis":3,"axis_value":-1.0)]}
+look_down={"deadzone":0.2,"events":[Object(InputEventJoypadMotion,"axis":3,"axis_value":1.0)]}
+attack_light={"deadzone":0.2,"events":[Object(InputEventMouseButton,"button_index":1),Object(InputEventJoypadButton,"button_index":2)]}
+attack_heavy={"deadzone":0.2,"events":[Object(InputEventMouseButton,"button_index":2),Object(InputEventJoypadButton,"button_index":3)]}
+dodge={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":32),Object(InputEventJoypadButton,"button_index":1)]}
+sprint={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":4194325),Object(InputEventJoypadButton,"button_index":7)]}
+interact={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":69),Object(InputEventJoypadButton,"button_index":0)]}
+inventory={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":4194306),Object(InputEventJoypadButton,"button_index":4)]}
+crafting={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":67)]}
+journal={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":74)]}
+pause={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":4194305),Object(InputEventJoypadButton,"button_index":6)]}
+quick_food={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":49)]}
+quick_water={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":50)]}
+quick_heal={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":51)]}
+quick_weapon={"deadzone":0.2,"events":[Object(InputEventKey,"physical_keycode":52)]}
 
-[localization]
-locale/fallback="en"
-locale/test="en"
+[input_devices]
+pointing/emulate_mouse_from_touch=true
 
-[gui]
-gui/theme/default_theme="res://resources/themes/default_theme.tres"
-gui/common/default_scroll_deadzone=0
+[layer_names]
+3d_physics/layer_1="Player"
+3d_physics/layer_2="Enemies"
+3d_physics/layer_3="NPCs"
+3d_physics/layer_4="Resources"
+3d_physics/layer_5="World"
+3d_physics/layer_7="Pickups"
 
-[debug]
-debug/settings/profiler/frame_time_graph_history_size=300
-debug/settings/stdout/verbose_stdout=true
-debug/settings/stdout/log_level=2
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.04,0.12,0.16,1)
+
+[audio]
+default_bus_layout="res://resources/DefaultBusLayout.tres"

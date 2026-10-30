@@ -1,390 +1,114 @@
-# Architecture Document — Death Island
+# Death Island architecture
 
-## Overview
+## Runtime ownership
 
-This document describes the technical architecture for Death Island, an Android survival RPG built with Godot 4 using GDScript.
-
-## High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Main.tscn                             │
-│  ┌─────────────────┐  ┌─────────────────┐                   │
-│  │   GameWorld     │  │    UILayer      │  (CanvasLayer)    │
-│  │   (Node3D)      │  │   (Control)     │                   │
-│  └────────┬────────┘  └────────┬────────┘                   │
-└───────────┼────────────────────┼────────────────────────────┘
-            │                    │
-            ▼                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Autoloads (Singletons)                  │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │GameManager  │ │ SaveManager │ │AudioManager │  ...       │
-│  └─────────────┘ └─────────────┘ └─────────────┘            │
-└─────────────────────────────────────────────────────────────┘
-            │                    │
-            ▼                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Gameplay Systems                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│  │ Combat   │ │ Crafting │ │ Survival │ │   AI     │        │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-└─────────────────────────────────────────────────────────────┘
-            │
-            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      Data Layer                              │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐            │
-│  │  Items      │ │  Recipes    │ │  Enemies    │  ...       │
-│  │ (Resource)  │ │ (Resource)  │ │ (Resource)  │            │
-│  └─────────────┘ └─────────────┘ └─────────────┘            │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Core Systems
-
-### 1. GameManagerGlobal (Autoload)
-**Responsibility**: Central game state coordination, scene transitions, pause/resume
-
-```gdscript
-# Key signals
-signal game_paused
-signal game_resumed
-signal scene_changing(new_scene: String)
-signal scene_changed(scene_name: String)
-
-# Key methods
-func change_scene(target: String) -> void
-func pause_game() -> void
-func resume_game() -> void
-func new_game() -> void
-func load_game(slot: int) -> void
-```
-
-### 2. SaveManagerGlobal (Autoload)
-**Responsibility**: Save/load operations, versioning, corruption recovery
-
-```gdscript
-# Save format: binary with header
-# Header: magic(4) + version(2) + checksum(4) + timestamp(8)
-# Body: JSON-serialized game state
-
-func save_game(slot: int, state: Dictionary) -> Error
-func load_game(slot: int) -> Dictionary?
-func delete_save(slot: int) -> void
-func list_saves() -> Array[Dictionary]
-func validate_save(data: PackedByteArray) -> bool
-```
-
-**Save Data Structure**:
-```json
-{
-  "version": 1,
-  "timestamp": 1700000000,
-  "player": {
-    "position": [x, y, z],
-    "rotation": [x, y, z],
-    "health": 100,
-    "stamina": 100,
-    "hunger": 80,
-    "thirst": 70,
-    "inventory": [...],
-    "equipment": {...},
-    "known_recipes": [...],
-    "completed_quests": [...],
-    "npc_trust": {...}
-  },
-  "world": {
-    "time_of_day": 0.5,
-    "resource_nodes": [...],
-    "enemy_spawns": [...],
-    "placed_objects": [...]
-  },
-  "settings": {...}
-}
-```
-
-### 3. CombatSystem (Script)
-**Responsibility**: Damage calculation, hit detection, knockback, status effects
-
-```gdscript
-# Damage calculation
-func calculate_damage(attacker: Entity, defender: Entity, attack_data: AttackData) -> float:
-    base = attack_data.base_damage * attacker.damage_multiplier
-    defense = defender.armor * 0.5
-    return max(1, base - defense)
-
-# Hit detection
-func raycast_attack(origin: Vector3, direction: Vector3, range: float, layers: int) -> Dictionary?
-```
-
-### 4. CraftingSystem (Script)
-**Responsibility**: Recipe validation, resource consumption, result generation
-
-```gdscript
-func can_craft(recipe: RecipeDefinition, inventory: Inventory) -> bool
-func craft(recipe: RecipeDefinition, inventory: Inventory) -> Array[ItemStack]
-func get_available_recipes(inventory: Inventory, known_recipes: Array) -> Array[RecipeDefinition]
-```
-
-### 5. SurvivalSystem (Script)
-**Responsibility**: Hunger/thirst decay, stamina regen, environmental effects
-
-```gdscript
-func process_survival(delta: float, player: Player) -> void:
-    player.hunger = max(0, player.hunger - HUNGER_RATE * delta)
-    player.thirst = max(0, player.thirst - THIRST_RATE * delta)
-    if player.hunger == 0 or player.thirst == 0:
-        player.health -= STARVATION_DAMAGE * delta
-```
-
-### 6. AISystem (Script)
-**Responsibility**: Enemy behavior trees, pathfinding, aggro management
-
-```gdscript
-# Behavior states: IDLE, PATROL, CHASE, ATTACK, FLEE, DEAD
-func update_ai(enemy: Enemy, delta: float, player: Player) -> void
-func find_path(start: Vector3, target: Vector3) -> Array[Vector3]
-func check_aggro(enemy: Enemy, player: Player) -> bool
-```
-
-## Entity Architecture
-
-### Base Classes
+`src/scenes/Main.tscn` is a logic-free bootstrap. `GameManagerGlobal` creates the
+UI and title screen, loads `GameWorld.tscn` on a background loader, then installs
+one world at `/root/GameWorld` and one CanvasLayer at `/root/UILayer`. Starting or
+loading a voyage replaces the world and resets its registries before restoration.
 
 ```
-Entity (CharacterBody3D)
-├── HealthComponent
-├── StatsComponent
-└── InteractionComponent
-
-Player (Entity)
-├── PlayerController (input, movement)
-├── PlayerCamera (third-person)
-├── InventoryComponent
-├── CraftingComponent
-└── SurvivalComponent
-
-Enemy (Entity)
-├── AIComponent
-├── LootComponent
-└── CombatComponent
-
-NPC (Entity)
-├── DialogueComponent
-├── QuestComponent
-├── TrustComponent
-└── CompanionComponent (if recruited)
-
-ResourceNode (StaticBody3D)
-├── GatherableComponent
-└── RespawnComponent
+UI / TouchControls
+    → GameManager requests → Player / gameplay systems
+    → read-only content resources
+    → validated state snapshots → SaveManager
 ```
 
-### Component Pattern
+The UI never inserts crafting output or directly changes survival/inventory state.
+Godot test runners remain alive while the coordinator swaps worlds, so integration
+tests exercise the same lifecycle as the game.
 
-Each component is a separate script attached as a child node:
+## Content
 
-```gdscript
-# HealthComponent.gd
-extends Node
-class_name HealthComponent
+`DataCatalogGlobal` indexes explicit `ContentPack` resources. The packs contain
+typed `ItemDefinition`, `RecipeDefinition`, `EnemyDefinition` and `QuestDefinition`
+resources. Explicit references work in exported PCKs without directory-scanning or
+`.remap` filename assumptions. Existing lowercase asset/script paths are retained.
 
-@export var max_health: float = 100.0
-var current_health: float = 100.0
+* `definitions/items/Items.tres`: 25 materials, consumables, equipment and building kits.
+* `definitions/recipes/Recipes.tres`: 15 recipes with aggregated costs/station requirements.
+* `definitions/enemies/Enemies.tres`: boar, wolf, cave stalker and guardian.
+* `definitions/Island.tres`: five fixed region rectangles, 20 resource placements,
+  six enemy placements and batched foliage positions.
+* `definitions/quests/Quests.tres`, `dialogue/Mara.tres`: three quests, branching
+  rewards/trust and three endings.
 
-signal health_changed(new_health: float, max_health: float)
-signal died
+`Art.tres` references original SVG illustrations and authored decoration placement.
+`tools/illustrate.py` reproducibly creates the character atlas, illustrated props,
+animals and small ground textures. `IllustratedArt` aligns transparent sprites to
+the fixed camera with their feet anchored on the physics plane. `IllustratedActor`
+drives walking/action frames from real gameplay events. A tiled ground shader
+blends regions, and a lightweight water shader animates the shoreline. Completed
+shelters derive a unified exterior from their four persisted building pieces.
 
-func take_damage(amount: float, source: Node = null) -> void
-func heal(amount: float) -> void
-func kill() -> void
+Physics shapes are separate from visuals. The headless renderer retains scene
+nodes/action states but omits GPU texture bindings to avoid Godot 4.3 dummy-renderer
+cleanup errors. Actual OpenGL rendering is verified by the render/gallery runners.
+
+## Components and systems
+
+* **Player**: CharacterBody3D movement under a fixed orthographic 45-degree camera,
+  InputMap keyboard/gamepad events and shared touch actions. Dodge and hit immunity
+  use paused game time, not wall-clock time.
+* **InventoryComponent**: aggregate item counts, stack-aware slot use, resource-defined
+  weights and atomic `preview_exchange`/`exchange`. Failed insertion, batch crafting
+  or quest rewards leave both ingredients and output unchanged.
+* **EquipmentComponent**: references inventory ownership; condition survives re-equipping.
+  Weapon/tool wear, material repairs, armor and hide-set bonus are system logic.
+* **SurvivalComponent**: hunger/thirst decay, accumulated starvation/dehydration damage,
+  stamina use and delayed regeneration. Consumables resolve through item definitions.
+* **Enemy**: patrol → chase → windup → attack → recovery → death. Charge/circle/ambush/
+  guard archetypes; one loot roll per death. Stable nodes preserve death/respawn state.
+* **ResourceSystem**: registry keyed by authored IDs. Each resource owns gathering,
+  cooldown, depletion and respawn; capacity failure does not consume a gather.
+* **QuestSystem**: offered/active/complete progression, prerequisites, inventory and
+  kill conditions, trust, recruitment and ending selection. Rewards are transactional.
+* **Companion**: follows the player, assists nearby combat and collects nearby loot.
+  Dedicated carry inventory and gathering orders remain future depth work.
+* **IslandWorld**: map construction, 24-minute day, exploration/travel, nearby stations,
+  shelter placement/rest, persistent world snapshots, pooled hit labels and local CSV.
+
+## Persistence
+
+Private application saves live in `user://save/`. There are ten manual slots (0–9),
+quicksave (-1) and autosave (-2). The binary header is:
+
+```
+magic u32 | version u16 | CRC32 u32 | timestamp u64 | UTF-8 JSON
 ```
 
-## Data Definitions (Resources)
+Version 2 stores player transform/stats/items/equipment, known recipes, region
+discovery/time, node depletion, enemy state, pickups, buildings, quests/trust/ending.
+The v1 reader converts inventory counts and supplies defaults for newly added
+systems; it cannot reconstruct world data that the old prototype never recorded.
 
-All game content defined as `Resource` subclasses for editor editing and runtime loading.
+Reads validate size (2 MiB), depth, checksums, version, JSON types, counts, positions
+and component bounds before replacing a live world. Writes verify a temporary
+file, rotate three valid backups and atomically replace the primary. Recovery uses
+the newest valid backup. Starting a new game does not delete manual saves. Dead
+players do not overwrite living autosaves.
 
-### ItemDefinition (Resource)
-```gdscript
-class_name ItemDefinition
-extends Resource
+Autosaves occur periodically, on pause/backgrounding, discovery, travel, completed
+quests, shelter rest and ending selection. Settings use a separate ConfigFile.
+Bounded synchronous save work needs latency profiling on device (ADR 001).
 
-@export var item_id: StringName
-@export var display_name: String
-@export var description: String
-@export var icon: Texture2D
-@export var max_stack: int = 99
-@export var weight: float = 0.1
-@export var item_type: ItemType  # enum: CONSUMABLE, TOOL, WEAPON, ARMOR, MATERIAL, QUEST
-@export var rarity: Rarity      # enum: COMMON, UNCOMMON, RARE, EPIC, LEGENDARY
-@export var consumable_effect: ConsumableEffect?  # if CONSUMABLE
-@export var equipment_slot: EquipmentSlot?        # if WEAPON/ARMOR
-@export var tool_power: int = 0                   # if TOOL
-@export var durability: int = 0                   # 0 = infinite
-```
+## Build and verification
 
-### RecipeDefinition (Resource)
-```gdscript
-class_name RecipeDefinition
-extends Resource
+* `tools/check.py`: lint, formatter check, Godot import, real core/integration suites,
+  launch smoke. Engine error output fails the gate even after a zero exit status.
+* `RenderSmoke.tscn`: title/world/crafting/dialogue rendered through OpenGL into PNGs.
+* `GameplayGallery.tscn`: six genuine action captures, state-change assertions and
+  an evidence manifest. The README embeds the compact WebP outputs.
+* `tools/build_android.py`: generated Godot Gradle project, native ARM64 SDK overlay,
+  API 24/35 configuration, verified debug APK. See ADR 002 for pinned tool versions.
+* `.github/workflows/ci.yml`: equivalent quality/render gates followed by APK upload.
 
-@export var recipe_id: StringName
-@export var display_name: String
-@export var description: String
-@export var ingredients: Array[RecipeIngredient]
-@export var results: Array[RecipeResult]
-@export var crafting_station: CraftingStationType  # enum: NONE, WORKBENCH, FORGE, CAMPFIRE
-@export var craft_time: float = 1.0
-@export var required_skill_level: int = 0
-@export var unlock_condition: UnlockCondition?
+Device frame-time, touch/lifecycle, thermal/battery, memory soak and release signing
+remain separate requirements. Their status is recorded in the roadmap/audit.
 
-struct RecipeIngredient:
-    var item: ItemDefinition
-    var count: int
-    var consumed: bool = true
+## Storage management
 
-struct RecipeResult:
-    var item: ItemDefinition
-    var count: int
-    var probability: float = 1.0
-```
-
-### EnemyDefinition (Resource)
-```gdscript
-class_name EnemyDefinition
-extends Resource
-
-@export var enemy_id: StringName
-@export var display_name: String
-@export var base_health: float = 50.0
-@export var base_damage: float = 10.0
-@export var move_speed: float = 3.0
-@export var attack_range: float = 2.0
-@export var detection_range: float = 15.0
-@export var attack_cooldown: float = 2.0
-@export var loot_table: LootTable
-@export var behavior_tree: BehaviorTreeResource
-@export var model_scene: PackedScene
-@export var hitbox_shape: CollisionShape3D
-```
-
-## Input System
-
-### InputMap Actions (Defined in project.godot)
-
-| Action | Type | Desktop | Mobile |
-|--------|------|---------|--------|
-| `move_forward` | Axis | W | Joystick Y+ |
-| `move_backward` | Axis | S | Joystick Y- |
-| `move_left` | Axis | A | Joystick X- |
-| `move_right` | Axis | D | Joystick X+ |
-| `camera_horizontal` | Axis | Mouse X | Touch Drag X |
-| `camera_vertical` | Axis | Mouse Y | Touch Drag Y |
-| `attack_light` | Button | LMB | Button A |
-| `attack_heavy` | Button | RMB | Button B |
-| `dodge` | Button | Shift | Button C |
-| `interact` | Button | E | Button D |
-| `inventory` | Button | Tab | Button E |
-| `pause` | Button | Esc | Button F |
-
-### Virtual Joystick (Mobile)
-- Left screen zone: 40% width × 100% height
-- Dead zone: 15% radius
-- Output: normalized Vector2 (-1 to 1)
-
-### Touch Camera
-- Right screen zone: 60% width × 100% height
-- Drag to rotate camera around player
-- Pinch for zoom (if implemented)
-
-## Rendering Pipeline
-
-### Compatibility Renderer (M0-M2)
-- No real-time shadows (baked lightmaps only)
-- Single directional light (sun) + ambient
-- Maximum 4 omnidirectional lights per scene
-- No SSAO, SSR, or volumetric fog
-- Mobile MSAA 2x or FXAA
-
-### Forward+ Renderer (M3+, if profiled viable)
-- Enable only after 30 FPS stable on target
-- Clustered lighting (max 32 lights)
-- Optional: SSAO, DOF, Bloom (with quality settings)
-
-### Texture Budget
-| Category | Max Resolution | Format | Notes |
-|----------|---------------|--------|-------|
-| UI/Atlas | 2048×2048 | ASTC 4x4 | Single atlas for all UI |
-| Character | 1024×1024 | ASTC 4x4 | Albedo + ORM packed |
-| Environment | 1024×1024 | ASTC 4x4 | Tiling textures |
-| Effects | 512×512 | ASTC 4x4 | Particles, decals |
-
-### Mesh Budget
-| Category | Max Triangles | Max Vertices |
-|----------|--------------|--------------|
-| Player | 3,000 | 1,500 |
-| Enemy | 2,000 | 1,000 |
-| NPC | 2,500 | 1,200 |
-| Prop (large) | 1,500 | 800 |
-| Prop (small) | 500 | 300 |
-| Foliage (billboard) | 2 quads | 4 |
-
-## Scene Management
-
-### Main Scene Structure
-```
-Main.tscn
-├── GameManagerGlobal (autoload)
-├── SaveManagerGlobal (autoload)
-├── AudioManagerGlobal (autoload)
-├── InputManagerGlobal (autoload)
-├── LoggerGlobal (autoload)
-├── GameWorld (Node3D)
-│   ├── Player (instance)
-│   ├── Environment (Node3D)
-│   │   ├── Terrain
-│   │   ├── Foliage
-│   │   ├── ResourceNodes
-│   │   └── EnemySpawns
-│   └── DynamicObjects (Node3D)
-│       ├── Enemies
-│       ├── NPCs
-│       └── DroppedItems
-└── UILayer (CanvasLayer)
-    ├── HUD (Control)
-    ├── PauseMenu (Control)
-    ├── InventoryUI (Control)
-    ├── CraftingUI (Control)
-    ├── DialogueUI (Control)
-    └── LoadingScreen (Control)
-```
-
-### Scene Transitions
-- Use `SceneTree.change_scene_to_file()` for major transitions
-- Keep `GameWorld` persistent; swap only environment sub-scenes
-- Show `LoadingScreen` during async resource loading
-- Save before transition, load after
-
-## Networking (Not Applicable)
-Death Island is **offline-first, single-player**. No networking code in M0-M4.
-
-## Security Considerations
-
-- No network = no remote attack surface
-- Save files: binary format + checksum + version validation
-- No `eval()`, `loadstring()`, or dynamic code execution
-- Input validation at all system boundaries
-- Android Keystore for any encryption keys (if needed later)
-
-## Extensibility Points
-
-1. **New Items**: Add `ItemDefinition` resource → appears in editor
-2. **New Recipes**: Add `RecipeDefinition` → auto-discovered by CraftingSystem
-3. **New Enemies**: Add `EnemyDefinition` + behavior tree → spawnable
-4. **New Quests**: Add quest data resource → QuestSystem handles
-5. **New Regions**: Add environment scene → GameWorld manages instancing
-
----
-
-*Update this document when architecture changes. Significant changes require ADR in `docs/DECISIONS/`.*
+`tools/storage.py` audits an explicit allowlist of disposable build/template files.
+Deletion requires `--apply`. Build tools require at least 8 GiB free before starting;
+Android intermediates can be reclaimed after verification. User saves, source and
+signing keys are outside the cleanup allowlist. See ADR 003.

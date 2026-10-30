@@ -1,13 +1,46 @@
 # Roadmap — Death Island
 
-## Milestone Overview
+## Implementation ledger — 2026-10-30
+
+The original milestone checklists below describe the full product target. They
+are not completion certificates. The repository now has a playable illustrated
+2.5D implementation spanning M1/M2 and an initial M3 art pass (ADR 003).
+
+Implemented: real input mappings and touch ownership; survival/combat/gathering;
+atomic crafting; 25 item definitions and 15 recipes; five authored regions; four
+enemy archetypes; processing stations and shelter pieces; three quest branches;
+trust, one recruitable companion and three endings; validated save slots/backups;
+menus, adjustable controls, render-distance/FPS settings, original synthesized SFX
+and bounded local frame-time capture. Original character/prop illustration,
+gameplay-driven action frames, fixed orthographic camera, textured regions,
+completed shelter art and six README gameplay captures are implemented.
+
+Automated evidence and build results are recorded in `docs/audits/BUILD_VERIFICATION.md`.
+Do not infer device performance from headless tests or software-rendered screenshots.
+
+Still required for the **entire M0–M4 roadmap**:
+
+* M0: verify the rewritten workflow on GitHub after publishing changes.
+* M1: install and play the acceptance loop on the target Android phone, including
+  multitouch, lifecycle/backgrounding and real save/relaunch.
+* M2: production-quality terrain/caves and navigation, companion carry/gather depth,
+  complete equipment-slot content, quest-failure paths and broader balance testing.
+* M3: finished character animation and environment art, music/ambience, richer combat
+  feedback, freely repositionable touch controls/text scaling, effect-quality tiers,
+  thermal/battery APIs, percentile telemetry, sustained and multi-device profiling.
+* M4: release signing/AAB, current Play requirements (including native-library page
+  alignment), low-storage/pause-resume/long-session validation, release review.
+
+The build is labeled `0.3.0-dev`; release certification still requires those gates.
+
+### Original milestone plan
 
 | Milestone | Focus | Duration | Status |
 |-----------|-------|----------|--------|
-| **M0** | Repository & Build Foundation | 1-2 weeks | 🔄 In Progress |
-| **M1** | Playable Survival Vertical Slice | 4-6 weeks | ⏳ Planned |
-| **M2** | Progression & World Systems | 6-8 weeks | ⏳ Planned |
-| **M3** | Presentation & Mobile Optimization | 4-6 weeks | ⏳ Planned |
+| **M0** | Repository & Build Foundation | 1-2 weeks | Local implementation; remote CI pending |
+| **M1** | Playable Survival Vertical Slice | 4-6 weeks | Automated checks; device gate pending |
+| **M2** | Progression & World Systems | 6-8 weeks | Playable prototype implementation |
+| **M3** | Presentation & Mobile Optimization | 4-6 weeks | Initial presentation; profiling pending |
 | **M4** | Release Candidate | 2-4 weeks | ⏳ Planned |
 
 ---
