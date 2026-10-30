@@ -1,2 +1,0 @@
-gdtoolkit==4.3.3
-setuptools==80.9.0
