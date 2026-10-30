@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AudioPalette" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/AudioPalette.gd" id="script"]
+[resource]
+script = ExtResource("script")
+cues = {
+"click": [660.0, 0.045, 0.2],
+"success": [880.0, 0.18, 0.25],
+"gather": [210.0, 0.09, 0.4],
+"hit": [95.0, 0.13, 0.5],
+"hurt": [65.0, 0.22, 0.5]
+}

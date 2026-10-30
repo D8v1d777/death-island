@@ -1,0 +1,100 @@
+[gd_resource type="Resource" script_class="ContentPack" load_steps=20 format=3]
+[ext_resource type="Script" path="res://scripts/data/ContentPack.gd" id="pack"]
+[ext_resource type="Script" path="res://scripts/data/recipe_definition.gd" id="recipe"]
+[ext_resource type="Resource" path="res://resources/definitions/recipes/stone_axe.tres" id="axe"]
+
+[sub_resource type="Resource" id="campfire"]
+script = ExtResource("recipe")
+recipe_id = "campfire"
+display_name = "Campfire Kit"
+ingredients = Array[Dictionary]([{"item_id":"wood","count":6},{"item_id":"stone","count":4}])
+result_item_id = "campfire_kit"
+[sub_resource type="Resource" id="cook"]
+script = ExtResource("recipe")
+recipe_id = "cooked_meat"
+display_name = "Cook Meat"
+ingredients = Array[Dictionary]([{"item_id":"raw_meat","count":1}])
+result_item_id = "cooked_meat"
+required_station = "campfire"
+[sub_resource type="Resource" id="bandage"]
+script = ExtResource("recipe")
+recipe_id = "bandage"
+display_name = "Bandage"
+ingredients = Array[Dictionary]([{"item_id":"fiber","count":3}])
+result_item_id = "bandage"
+[sub_resource type="Resource" id="workbench"]
+script = ExtResource("recipe")
+recipe_id = "workbench"
+display_name = "Workbench Kit"
+ingredients = Array[Dictionary]([{"item_id":"wood","count":8},{"item_id":"stone","count":6}])
+result_item_id = "workbench_kit"
+[sub_resource type="Resource" id="forge"]
+script = ExtResource("recipe")
+recipe_id = "forge"
+display_name = "Forge Kit"
+ingredients = Array[Dictionary]([{"item_id":"stone","count":8},{"item_id":"iron_ore","count":3}])
+result_item_id = "forge_kit"
+required_station = "workbench"
+[sub_resource type="Resource" id="smelt"]
+script = ExtResource("recipe")
+recipe_id = "iron_ingot"
+display_name = "Smelt Iron"
+ingredients = Array[Dictionary]([{"item_id":"iron_ore","count":2},{"item_id":"wood","count":1}])
+result_item_id = "iron_ingot"
+required_station = "forge"
+[sub_resource type="Resource" id="blade"]
+script = ExtResource("recipe")
+recipe_id = "iron_blade"
+display_name = "Iron Blade"
+ingredients = Array[Dictionary]([{"item_id":"iron_ingot","count":3},{"item_id":"wood","count":2}])
+result_item_id = "iron_blade"
+required_station = "forge"
+[sub_resource type="Resource" id="vest"]
+script = ExtResource("recipe")
+recipe_id = "hide_vest"
+display_name = "Hide Vest"
+ingredients = Array[Dictionary]([{"item_id":"hide","count":4},{"item_id":"fiber","count":3}])
+result_item_id = "hide_vest"
+required_station = "workbench"
+[sub_resource type="Resource" id="hood"]
+script = ExtResource("recipe")
+recipe_id = "hide_hood"
+display_name = "Hide Hood"
+ingredients = Array[Dictionary]([{"item_id":"hide","count":2},{"item_id":"fiber","count":2}])
+result_item_id = "hide_hood"
+required_station = "workbench"
+[sub_resource type="Resource" id="boots"]
+script = ExtResource("recipe")
+recipe_id = "hide_boots"
+display_name = "Hide Boots"
+ingredients = Array[Dictionary]([{"item_id":"hide","count":2},{"item_id":"fiber","count":2}])
+result_item_id = "hide_boots"
+required_station = "workbench"
+[sub_resource type="Resource" id="foundation"]
+script = ExtResource("recipe")
+recipe_id = "foundation"
+display_name = "Shelter Foundation"
+ingredients = Array[Dictionary]([{"item_id":"wood","count":4},{"item_id":"stone","count":2}])
+result_item_id = "foundation_kit"
+[sub_resource type="Resource" id="wall"]
+script = ExtResource("recipe")
+recipe_id = "wall"
+display_name = "Shelter Wall"
+ingredients = Array[Dictionary]([{"item_id":"wood","count":3}])
+result_item_id = "wall_kit"
+[sub_resource type="Resource" id="roof"]
+script = ExtResource("recipe")
+recipe_id = "roof"
+display_name = "Shelter Roof"
+ingredients = Array[Dictionary]([{"item_id":"wood","count":4},{"item_id":"fiber","count":3}])
+result_item_id = "roof_kit"
+[sub_resource type="Resource" id="door"]
+script = ExtResource("recipe")
+recipe_id = "door"
+display_name = "Shelter Door"
+ingredients = Array[Dictionary]([{"item_id":"wood","count":2},{"item_id":"fiber","count":2}])
+result_item_id = "door_kit"
+
+[resource]
+script = ExtResource("pack")
+entries = Array[Resource]([ExtResource("axe"),SubResource("campfire"),SubResource("cook"),SubResource("bandage"),SubResource("workbench"),SubResource("forge"),SubResource("smelt"),SubResource("blade"),SubResource("vest"),SubResource("hood"),SubResource("boots"),SubResource("foundation"),SubResource("wall"),SubResource("roof"),SubResource("door")])
