@@ -76,7 +76,10 @@ gallery occupies about 672 KiB. Future Android builds enforce an 8 GiB reserve.
   equipment content, richer quest failure paths and accessibility remain.
 * Performance, battery, thermals, low storage, lifecycle and long-session stability
   have not been certified. No line-coverage percentage is claimed.
-* The rewritten GitHub workflow has not been run remotely for these local changes.
+* Remote verification is tracked in [GitHub Actions](https://github.com/D8v1d777/death-island/actions/workflows/ci.yml).
+  The first runs passed security, lint, gameplay and rendering. Cloud Android
+  setup additionally required excluding Google's removed `tools` package and
+  explicitly enabling Android ETC2/ASTC imports on the x86 runner.
 * The artifact is debug signed. Release signing/AAB/store-readiness are unfinished.
 * Godot 4.3's dummy renderer can emit a null-mesh cleanup error in the standalone
   exported-runtime script test. That test was verified with real OpenGL instead;
