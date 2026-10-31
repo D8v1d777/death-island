@@ -10,8 +10,8 @@
 
 ## Important art limitation
 
-`DAVE_PRODUCTION_CHARACTER_BIBLE.jpg` and `ELLIE_PRODUCTION_CHARACTER_BIBLE.jpg` are reference-sheet images, not animation atlases. The latter filename is retained for compatibility, but its concept is intended to represent Marie. The currently registered game sprites are vector animation strips at 2048×448 (eight 256×448 frames); they are the runtime assets. The reference JPEGs previously committed to the repo are small compressed copies and are **not** promoted as production-quality final art.
+The two previously committed JPEG reference-sheet files were malformed binary copies (Godot could not decode them during a clean import), so they have been removed from this feature branch to restore deterministic imports. The source reference images supplied in chat are not available as valid binary files through the current GitHub text-file interface. The currently registered game sprites are vector animation strips at 2048×448 (eight 256×448 frames); they are the runtime assets and remain usable while production art is prepared.
 
 ## Next art gate
 
-Create authored, game-ready 8-frame vector/raster strips from the approved Dave and Marie designs, keeping consistent frame bounds, baseline, silhouette, outfit details, and transparent backgrounds. Add import/render snapshots for both characters and verify their actions on the target Android device before claiming final character-art completion.
+Restore valid full-resolution source reference images to the repository using binary-safe Git blob uploads. Then author game-ready 8-frame vector/raster strips from the approved Dave and Marie designs, keeping consistent frame bounds, baseline, silhouette, outfit details, and transparent backgrounds. Add import/render snapshots for both characters and verify their actions on the target Android device before claiming final character-art completion.
