@@ -22,6 +22,7 @@ var _toast_time := 0.0
 var _refresh_time := 0.0
 var _dialogue_text := ""
 var _loading_label: Label
+var _selected_character := "dave"
 
 
 func _ready() -> void:
@@ -180,8 +181,9 @@ func _process(delta: float) -> void:
 		_bars[index].value = values[index]
 		_bar_labels[index].text = "%s   %d / 100" % [names[index], roundi(values[index])]
 	_status.text = (
-		"AYLA · %s\n%s"
+		"%s · %s\n%s"
 		% [
+			CharacterRoster.display_name(player.character_id).to_upper(),
 			GameManagerGlobal.world.get_time_string(),
 			GameManagerGlobal.world.current_region.capitalize()
 		]
@@ -271,7 +273,20 @@ func _render_menu() -> void:
 func _main_menu() -> void:
 	_text(_content, "THE TIDE TOOK EVERYTHING. WHAT WILL YOU KEEP?", 20)
 	_text(_content, COPY.text.intro)
-	_button(_content, "New voyage", GameManagerGlobal.new_game)
+	_text(_content, "Choose your survivor · interim illustrated designs", 18)
+	var characters := OptionButton.new()
+	characters.name = "CharacterChoice"
+	characters.custom_minimum_size.y = 72
+	for id in CharacterRoster.PROFILES:
+		characters.add_item(CharacterRoster.display_name(id))
+		characters.set_item_metadata(characters.item_count - 1, id)
+		if id == _selected_character:
+			characters.select(characters.item_count - 1)
+	characters.item_selected.connect(
+		func(index: int): _selected_character = str(characters.get_item_metadata(index))
+	)
+	_content.add_child(characters)
+	_button(_content, "New voyage", func(): GameManagerGlobal.new_game(_selected_character))
 	_button(_content, "Continue / Load", GameManagerGlobal.open_menu.bind("load"))
 	_button(_content, "Settings", GameManagerGlobal.open_menu.bind("settings"))
 	_button(_content, "Controls & survival guide", GameManagerGlobal.open_menu.bind("help"))
@@ -292,6 +307,7 @@ func _inventory_menu() -> void:
 	if not player:
 		return
 	var inventory := player.inventory_comp
+	_button(_content, "Craft from this inventory", GameManagerGlobal.open_menu.bind("crafting"))
 	_text(
 		_content,
 		(
@@ -343,6 +359,15 @@ func _crafting_menu() -> void:
 	var player := GameManagerGlobal.get_player()
 	if not player:
 		return
+	_button(_content, "Open inventory", GameManagerGlobal.open_menu.bind("inventory"))
+	_text(
+		_content,
+		(
+			"Inventory · %d stacks · %.1f kg"
+			% [player.inventory_comp.get_used_slots(), player.inventory_comp.get_current_weight()]
+		),
+		18
+	)
 	_text(_content, COPY.text.crafting, 18)
 	for key in CraftingSystemGlobal.get_known_recipes():
 		var recipe := CraftingSystemGlobal.get_recipe(key)

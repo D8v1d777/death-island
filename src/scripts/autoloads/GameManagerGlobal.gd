@@ -60,8 +60,8 @@ func _notification(what: int) -> void:
 			open_menu("pause")
 
 
-func new_game() -> void:
-	_start_world({})
+func new_game(character_id: String = "dave") -> void:
+	_start_world({}, CharacterRoster.normalize_id(character_id))
 
 
 func load_game(slot: int) -> bool:
@@ -73,7 +73,7 @@ func load_game(slot: int) -> bool:
 	return true
 
 
-func _start_world(data: Dictionary) -> void:
+func _start_world(data: Dictionary, character_id: String = "dave") -> void:
 	if is_loading:
 		return
 	is_loading = true
@@ -101,7 +101,9 @@ func _start_world(data: Dictionary) -> void:
 	QuestSystemGlobal.reset()
 	world = packed.instantiate()
 	get_tree().root.add_child(world)
-	if not data.is_empty():
+	if data.is_empty():
+		get_player().set_character_id(character_id)
+	else:
 		world.deserialize(data.world)
 		get_player().deserialize(data.player)
 		QuestSystemGlobal.deserialize(data.get("quests", {}))

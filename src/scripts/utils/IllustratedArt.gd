@@ -12,12 +12,12 @@ static func sprite(
 	var node := Sprite3D.new()
 	node.name = "Illustration"
 	var texture: Texture2D = DataCatalogGlobal.art.textures.get(
-		key, DataCatalogGlobal.art.textures.rock
+		key, DataCatalogGlobal.art.textures.get("rock")
 	)
 	if DisplayServer.get_name() != "headless":
 		node.texture = texture
 	node.hframes = frames
-	node.pixel_size = height / float(texture.get_height())
+	node.pixel_size = height / float(texture.get_height()) if texture else 1.0
 	node.rotation.x = CAMERA_PITCH
 	node.position = at + SCREEN_UP * height * 0.43
 	node.shaded = false

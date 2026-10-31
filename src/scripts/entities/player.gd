@@ -41,6 +41,7 @@ func _ready() -> void:
 	health_comp.died.connect(_on_died)
 	health_comp.damaged.connect(_on_damaged)
 	inventory_comp.inventory_changed.connect(_reconcile_equipment)
+	character_id = CharacterRoster.normalize_id(character_id)
 	illustration = IllustratedActor.new()
 	illustration.set_character_id(character_id)
 	visual.add_child(illustration)
@@ -236,6 +237,12 @@ func _on_damaged(_amount: float, _source: Node) -> void:
 	AudioManagerGlobal.play_ui_sfx("hurt")
 
 
+func set_character_id(value: String) -> void:
+	character_id = CharacterRoster.normalize_id(value)
+	if is_instance_valid(illustration):
+		illustration.set_character_id(character_id)
+
+
 func serialize() -> Dictionary:
 	return {
 		"position": StateValidation.array3(global_position),
@@ -253,9 +260,7 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	global_position = StateValidation.vec3(data.position)
-	character_id = CharacterRoster.normalize_id(str(data.get("character_id", character_id)))
-	if is_instance_valid(illustration):
-		illustration.set_character_id(character_id)
+	set_character_id(str(data.get("character_id", "dave")))
 	_look = Vector2(0, IllustratedArt.CAMERA_PITCH)
 	health_comp.deserialize({"current_health": data.health})
 	survival_comp.deserialize(data)
