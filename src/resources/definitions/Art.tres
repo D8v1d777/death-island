@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="ArtDefinition" load_steps=34 format=3]
+[gd_resource type="Resource" script_class="ArtDefinition" load_steps=36 format=3]
 [ext_resource type="Script" path="res://scripts/data/ArtDefinition.gd" id="script"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Survivor.svg" id="survivor"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Dave.svg" id="dave"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Mara.svg" id="mara"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Marie.svg" id="marie"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Palm.svg" id="palm"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Tree.svg" id="tree"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Rock.svg" id="rock"]
@@ -36,7 +38,7 @@
 script = ExtResource("script")
 textures = {
 "survivor":ExtResource("survivor"),"mara":ExtResource("mara"),
-"dave":ExtResource("survivor"),"marie":ExtResource("mara"),
+"dave":ExtResource("dave"),"marie":ExtResource("marie"),
 "palm":ExtResource("palm"),"tree":ExtResource("tree"),"rock":ExtResource("rock"),
 "ore":ExtResource("ore"),"crystal":ExtResource("crystal"),"wood":ExtResource("wood"),
 "fern":ExtResource("fern"),"berries":ExtResource("berries"),
