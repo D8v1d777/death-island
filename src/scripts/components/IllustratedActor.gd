@@ -7,6 +7,7 @@ const ACTION_FRAMES := {
 }
 
 var art_key := "survivor"
+var character_id := ""
 var body: Sprite3D
 var action_name := "idle"
 var _action_time := 0.0
@@ -16,6 +17,8 @@ var _base_position := Vector3.ZERO
 
 
 func _ready() -> void:
+	if not character_id.is_empty():
+		art_key = CharacterRoster.art_key(character_id)
 	IllustratedArt.shadow(self)
 	body = IllustratedArt.sprite(self, art_key, 3.4, Vector3.ZERO, 8)
 	_base_position = body.position
