@@ -35,6 +35,8 @@ func _draw() -> void:
 		Color(0.87, 0.80, 0.58, opacity * 0.65)
 	)
 	var font := ThemeDB.fallback_font
+	var font_size := roundi(14 * float(GameManagerGlobal.settings.text_scale))
+	var line_height := font_size + 2
 	var layout := InputManagerGlobal.get_button_layout()
 	for action in layout:
 		var point: Vector2 = layout[action]
@@ -43,13 +45,25 @@ func _draw() -> void:
 		draw_arc(point, button_radius, 0, TAU, 32, Color(0.79, 0.7, 0.48, opacity), 2, true)
 		var lines: PackedStringArray = LABELS[action].split("\n")
 		for index in lines.size():
-			var text_size := font.get_string_size(lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, 14)
+			var text_size := font.get_string_size(
+				lines[index], HORIZONTAL_ALIGNMENT_LEFT, -1, font_size
+			)
 			draw_string(
 				font,
-				point + Vector2(-text_size.x / 2, 5 + index * 16 - (lines.size() - 1) * 8),
+				(
+					point
+					+ Vector2(
+						-text_size.x / 2,
+						(
+							font_size * 0.36
+							+ index * line_height
+							- (lines.size() - 1) * line_height * 0.5
+						)
+					)
+				),
 				lines[index],
 				HORIZONTAL_ALIGNMENT_LEFT,
 				-1,
-				14,
+				font_size,
 				Color("f1ead8")
 			)

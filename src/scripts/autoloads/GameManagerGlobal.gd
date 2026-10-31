@@ -25,6 +25,7 @@ var settings: Dictionary = {
 	"quality": 1,
 	"controls_scale": 1.0,
 	"controls_opacity": 0.7,
+	"text_scale": 1.0,
 	"left_handed": false
 }
 var _autosave_timer := 0.0
@@ -317,6 +318,9 @@ func _load_settings() -> void:
 
 
 func apply_settings() -> void:
+	settings.text_scale = clampf(float(settings.text_scale), 1.0, 1.4)
+	if is_instance_valid(ui):
+		ui.apply_text_scale()
 	AudioManagerGlobal.set_bus_volume_linear("Master", clampf(settings.volume, 0, 1))
 	InputManagerGlobal.set_touch_sensitivity(settings.sensitivity)
 	InputManagerGlobal.haptic_feedback_enabled = settings.vibration

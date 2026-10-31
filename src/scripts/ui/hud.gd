@@ -31,7 +31,8 @@ func _ready() -> void:
 	_root = Control.new()
 	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_root.theme = THEME
+	_root.theme = THEME.duplicate()
+	_root.set_meta("base_font_size", _root.theme.default_font_size)
 	add_child(_root)
 	_build_hud()
 	_modal = PanelContainer.new()
@@ -277,6 +278,23 @@ func _render_menu() -> void:
 	var first := _content.find_children("*", "Button", true, false)
 	if not first.is_empty():
 		first[0].grab_focus()
+	apply_text_scale()
+
+
+func apply_text_scale() -> void:
+	if not is_instance_valid(_root):
+		return
+	var scale_factor := clampf(float(GameManagerGlobal.settings.text_scale), 1.0, 1.4)
+	_root.theme.default_font_size = roundi(int(_root.get_meta("base_font_size")) * scale_factor)
+	for control: Control in _root.find_children("*", "Control", true, false):
+		if control.has_theme_font_size_override("font_size"):
+			if not control.has_meta("base_font_size"):
+				control.set_meta("base_font_size", control.get_theme_font_size("font_size"))
+			control.add_theme_font_size_override(
+				"font_size", roundi(int(control.get_meta("base_font_size")) * scale_factor)
+			)
+	for button: Button in _content.find_children("*", "Button", true, false):
+		button.custom_minimum_size.x = 90 * scale_factor
 
 
 func _main_menu() -> void:
@@ -471,6 +489,7 @@ func _save_slot(slot: int) -> void:
 
 func _settings_menu() -> void:
 	var settings := GameManagerGlobal.settings
+	_slider("Text size", "text_scale", 1.0, 1.4, 0.1, float(settings.text_scale))
 	_slider("Master volume", "volume", 0, 1, 0.05, float(settings.volume))
 	_slider("Camera sensitivity", "sensitivity", 0.001, 0.02, 0.001, float(settings.sensitivity))
 	_slider("Touch control size", "controls_scale", 0.8, 1.2, 0.05, float(settings.controls_scale))

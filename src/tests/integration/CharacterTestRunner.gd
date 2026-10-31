@@ -75,6 +75,7 @@ func _run() -> void:
 		GameManagerGlobal.request_quit_to_main_menu()
 		await _frames(2)
 	_test_texture_fallback()
+	await _test_text_and_aspects()
 	SaveManagerGlobal.delete_save(0)
 	SaveManagerGlobal.delete_save(SaveManagerGlobal.AUTOSAVE_SLOT)
 	print("CHARACTERS: %d passed, %d failed" % [_passed, _failed])
@@ -89,6 +90,34 @@ func _test_texture_fallback() -> void:
 	textures.marie = textures.rock
 	_check(IllustratedActor.character_texture("marie") == textures.dave, "invalid size fallback")
 	textures.marie = marie
+
+
+func _test_text_and_aspects() -> void:
+	var window := get_window()
+	var original_size := window.size
+	var original_scale: float = GameManagerGlobal.settings.text_scale
+	GameManagerGlobal.new_game("marie")
+	while GameManagerGlobal.is_loading:
+		await get_tree().process_frame
+	GameManagerGlobal.settings.text_scale = 1.3
+	GameManagerGlobal.apply_settings()
+	GameManagerGlobal.open_menu("crafting")
+	for size in [Vector2i(1280, 720), Vector2i(1600, 720), Vector2i(1024, 768)]:
+		window.size = size
+		await _frames(3)
+		var ui := GameManagerGlobal.ui as HUD
+		var header := ui._content.get_child(0).get_child(0) as Label
+		_check(header.get_theme_font_size("font_size") == 42, "text scaling updates header")
+		var area := ui._modal.get_global_rect()
+		_check(get_viewport().get_visible_rect().encloses(area), "modal fits aspect " + str(size))
+		var back := ui._content.get_child(0).get_child(1) as Button
+		_check(back.size.x >= 117, "scaled button leaves room for its label")
+		await _capture("ui-%dx%d" % [size.x, size.y])
+	window.size = original_size
+	GameManagerGlobal.settings.text_scale = original_scale
+	GameManagerGlobal.apply_settings()
+	GameManagerGlobal.request_quit_to_main_menu()
+	await _frames(2)
 
 
 func _frames(count: int) -> void:
