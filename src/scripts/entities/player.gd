@@ -42,7 +42,7 @@ func _ready() -> void:
 	health_comp.damaged.connect(_on_damaged)
 	inventory_comp.inventory_changed.connect(_reconcile_equipment)
 	illustration = IllustratedActor.new()
-	illustration.character_id = CharacterRoster.normalize_id(character_id)
+	illustration.set_character_id(character_id)
 	visual.add_child(illustration)
 	_look = Vector2(0, IllustratedArt.CAMERA_PITCH)
 	camera_pivot.rotation = Vector3(IllustratedArt.CAMERA_PITCH, 0, 0)
@@ -246,12 +246,16 @@ func serialize() -> Dictionary:
 		"thirst": survival_comp.thirst,
 		"inventory": inventory_comp.serialize(),
 		"equipment": equipment_comp.serialize(),
+		"character_id": CharacterRoster.normalize_id(character_id),
 		"experience": experience
 	}
 
 
 func deserialize(data: Dictionary) -> void:
 	global_position = StateValidation.vec3(data.position)
+	character_id = CharacterRoster.normalize_id(str(data.get("character_id", character_id)))
+	if is_instance_valid(illustration):
+		illustration.set_character_id(character_id)
 	_look = Vector2(0, IllustratedArt.CAMERA_PITCH)
 	health_comp.deserialize({"current_health": data.health})
 	survival_comp.deserialize(data)
