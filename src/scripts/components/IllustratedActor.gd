@@ -28,7 +28,9 @@ func set_character_id(value: String) -> void:
 	character_id = CharacterRoster.normalize_id(value)
 	art_key = CharacterRoster.art_key(character_id)
 	if is_instance_valid(body):
-		body.texture = DataCatalogGlobal.art.textures.get(art_key, DataCatalogGlobal.art.textures.survivor)
+		body.texture = DataCatalogGlobal.art.textures.get(
+			art_key, DataCatalogGlobal.art.textures.survivor
+		)
 		body.frame = 0
 
 
