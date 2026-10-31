@@ -14,6 +14,7 @@ const INTERACTION_RANGE := 3.5
 const GRAVITY := 20.0
 const LOOK_SPEED := 2.0
 
+@export_enum("dave", "marie") var character_id := "dave"
 var experience := 0
 var illustration: IllustratedActor
 var _look := Vector2(0, -0.5)
@@ -41,6 +42,7 @@ func _ready() -> void:
 	health_comp.damaged.connect(_on_damaged)
 	inventory_comp.inventory_changed.connect(_reconcile_equipment)
 	illustration = IllustratedActor.new()
+	illustration.character_id = CharacterRoster.normalize_id(character_id)
 	visual.add_child(illustration)
 	_look = Vector2(0, IllustratedArt.CAMERA_PITCH)
 	camera_pivot.rotation = Vector3(IllustratedArt.CAMERA_PITCH, 0, 0)
