@@ -188,6 +188,8 @@ func _process(delta: float) -> void:
 			GameManagerGlobal.world.current_region.capitalize()
 		]
 	)
+	if GameManagerGlobal.last_save_failed:
+		_status.text += "\nSAVE FAILED · retry in Pause"
 	var target := player.get_interaction_target()
 	_prompt.text = "E / GATHER · " + target.get_interaction_text() if target else ""
 
@@ -228,6 +230,13 @@ func _render_menu() -> void:
 			_main_menu()
 		"pause":
 			_pause_menu()
+		"confirm_quit":
+			_text(_content, "Saving failed. Leave this voyage and lose unsaved progress?")
+			_button(
+				_content,
+				"Leave without saving",
+				GameManagerGlobal.request_quit_to_main_menu.bind(true)
+			)
 		"inventory":
 			_inventory_menu()
 		"crafting":
@@ -300,6 +309,8 @@ func _pause_menu() -> void:
 	_button(_content, "Settings", GameManagerGlobal.open_menu.bind("settings"))
 	_button(_content, "Controls & survival guide", GameManagerGlobal.open_menu.bind("help"))
 	_button(_content, "Return to title", GameManagerGlobal.request_quit_to_main_menu)
+	if GameManagerGlobal.last_save_failed:
+		_button(_content, "Leave without saving…", GameManagerGlobal.open_menu.bind("confirm_quit"))
 
 
 func _inventory_menu() -> void:

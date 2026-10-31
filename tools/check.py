@@ -88,6 +88,11 @@ def main() -> None:
         os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
         run(
             ["xvfb-run", "-a", godot, "--path", "src", "--audio-driver", "Dummy",
+             "res://tests/integration/StabilityTestRunner.tscn"],
+            "STABILITY:", timeout=120,
+        )
+        run(
+            ["xvfb-run", "-a", godot, "--path", "src", "--audio-driver", "Dummy",
              "res://tests/integration/CharacterTestRunner.tscn"],
             "CHARACTERS:",
             timeout=120,

@@ -25,24 +25,29 @@ func valid_slot(slot: int) -> bool:
 
 func save_game(slot: int, custom_data: Dictionary = {}) -> Error:
 	if not valid_slot(slot):
-		return ERR_INVALID_PARAMETER
+		return _save_failure(slot, ERR_INVALID_PARAMETER)
 	if _busy:
-		return ERR_BUSY
+		return _save_failure(slot, ERR_BUSY)
 	var data := (
 		custom_data.duplicate(true) if not custom_data.is_empty() else GameManagerGlobal.snapshot()
 	)
 	if data.is_empty():
-		return ERR_UNAVAILABLE
+		return _save_failure(slot, ERR_UNAVAILABLE)
 	data["version"] = SAVE_VERSION
 	data["timestamp"] = int(Time.get_unix_time_from_system())
 	if not StateValidation.state(data):
-		return ERR_INVALID_DATA
+		return _save_failure(slot, ERR_INVALID_DATA)
 	_busy = true
 	var result := _write_save_file(slot, data)
 	_busy = false
 	save_completed.emit(slot, result == OK)
 	save_list_updated.emit()
 	return result
+
+
+func _save_failure(slot: int, error: Error) -> Error:
+	save_completed.emit(slot, false)
+	return error
 
 
 func load_game(slot: int) -> Dictionary:

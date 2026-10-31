@@ -51,7 +51,7 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	_gather_cooldown = maxf(0, _gather_cooldown - delta)
 	if _is_depleted:
-		_respawn_timer -= delta
+		_respawn_timer = maxf(0, _respawn_timer - delta)
 		if _respawn_timer <= 0:
 			_gathers = 0
 			_is_depleted = false
@@ -108,7 +108,9 @@ func _sync_visibility() -> void:
 
 
 func serialize() -> Dictionary:
-	return {"gathers": _gathers, "is_depleted": _is_depleted, "respawn_timer": _respawn_timer}
+	return {
+		"gathers": _gathers, "is_depleted": _is_depleted, "respawn_timer": maxf(0, _respawn_timer)
+	}
 
 
 func deserialize(data: Dictionary) -> void:

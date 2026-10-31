@@ -17,6 +17,7 @@ var world: Node3D
 var ui: CanvasLayer
 var is_paused := false
 var is_loading := false
+var last_save_failed := false
 var settings: Dictionary = {
 	"volume": 0.7,
 	"sensitivity": 0.005,
@@ -109,6 +110,7 @@ func _start_world(data: Dictionary, character_id: String = "dave") -> void:
 		QuestSystemGlobal.deserialize(data.get("quests", {}))
 		CraftingSystemGlobal.restore_known(data.get("known_recipes", []))
 	_autosave_timer = 0
+	last_save_failed = false
 	is_loading = false
 	is_paused = false
 	get_tree().paused = false
@@ -187,7 +189,8 @@ func handle_action(action: String) -> void:
 
 func save(slot: int, notify: bool = true) -> Error:
 	var result := SaveManagerGlobal.save_game(slot)
-	if notify:
+	last_save_failed = result != OK
+	if notify or last_save_failed:
 		message_posted.emit("Game saved." if result == OK else "Save failed. Check free storage.")
 	return result
 
@@ -204,13 +207,19 @@ func snapshot() -> Dictionary:
 	}
 
 
-func request_quit_to_main_menu() -> void:
-	save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
+func request_quit_to_main_menu(discard_unsaved: bool = false) -> void:
+	var player := get_player()
+	if not discard_unsaved and player and not player.health_comp.is_dead():
+		if save(SaveManagerGlobal.AUTOSAVE_SLOT, false) != OK:
+			pause_game()
+			menu_requested.emit("pause")
+			return
 	if is_instance_valid(world):
 		world.queue_free()
 	world = null
 	get_tree().paused = false
 	is_paused = false
+	last_save_failed = false
 	InputManagerGlobal.reset()
 	menu_requested.emit("main")
 

@@ -40,7 +40,8 @@ func get_known_recipes() -> Array[String]:
 
 
 func restore_known(recipes: Array) -> void:
-	_known_recipes.clear()
+	# Current starter content must remain reachable after loading an older recipe list.
+	reset()
 	for key in recipes:
 		if key is String:
 			learn_recipe(key)

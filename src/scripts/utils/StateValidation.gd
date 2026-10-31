@@ -48,6 +48,8 @@ static func state(data: Dictionary) -> bool:
 			return false
 	if not number(player.get("experience", 0), 0, 1000000):
 		return false
+	if not player.get("character_id", "dave") is String:
+		return false
 	if not player.get("inventory") is Dictionary or not player.get("equipment", {}) is Dictionary:
 		return false
 	var inventory := InventoryComponent.new()
@@ -71,6 +73,10 @@ static func state(data: Dictionary) -> bool:
 					return false
 			for field in ["is_depleted", "dead"]:
 				if entry.has(field) and not entry[field] is bool:
+					return false
+			if key == "enemies":
+				var dead: bool = entry.get("dead", false)
+				if dead != (float(entry.get("health", 1)) == 0):
 					return false
 	for key in ["structures", "pickups"]:
 		if not world.get(key, []) is Array or world.get(key, []).size() > 64:
@@ -130,19 +136,29 @@ static func _quests(data: Dictionary) -> bool:
 	for key in ["states", "choices", "kills"]:
 		if not data.get(key, {}) is Dictionary:
 			return false
-	for value in data.get("states", {}).values():
-		if not value in ["active", "complete", "failed"]:
+	var definitions: Dictionary = {}
+	for quest: QuestDefinition in QuestSystemGlobal.QUESTS.entries:
+		definitions[quest.quest_id] = quest
+	for key in data.get("states", {}):
+		if not definitions.has(key) or not data.states[key] in ["active", "complete", "failed"]:
 			return false
-	for value in data.get("choices", {}).values():
-		if not value is String:
+	for key in data.get("choices", {}):
+		if not definitions.has(key) or not data.choices[key] is String:
 			return false
-	for value in data.get("kills", {}).values():
-		if not number(value, 0, 1e6):
+		var known := false
+		for choice in definitions[key].choices:
+			known = known or choice.id == data.choices[key]
+		if not known:
 			return false
+	for key in data.get("kills", {}):
+		if not DataCatalogGlobal.enemies.has(key) or not number(data.kills[key], 0, 1e6):
+			return false
+	var ending: Variant = data.get("ending", "")
 	return (
 		number(data.get("trust", 0), -10, 10)
 		and data.get("recruited", false) is bool
-		and data.get("ending", "") is String
+		and ending is String
+		and (ending.is_empty() or QuestSystemGlobal.DIALOGUE.endings.has(ending))
 	)
 
 

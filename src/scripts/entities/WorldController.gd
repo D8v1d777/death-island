@@ -271,8 +271,14 @@ func rest(player: Player, foundation: Structure) -> bool:
 	player.survival_comp.hunger -= 10
 	player.survival_comp.thirst -= 10
 	player.survival_comp.restore_stamina(100)
-	GameManagerGlobal.save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
-	GameManagerGlobal.message_posted.emit("Rested six hours. Health restored; game saved.")
+	var saved := GameManagerGlobal.save(SaveManagerGlobal.AUTOSAVE_SLOT, false) == OK
+	GameManagerGlobal.message_posted.emit(
+		(
+			"Rested six hours. Health restored; game saved."
+			if saved
+			else "Rested six hours. Saving failed; retry from Pause."
+		)
+	)
 	return true
 
 
