@@ -1,6 +1,8 @@
 extends Node
 ## Run under Xvfb with OpenGL; this exercises the real renderer, not the dummy one.
 
+var _failed := false
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -25,8 +27,9 @@ func _run() -> void:
 	await _capture("crafting")
 	GameManagerGlobal.open_menu("dialogue")
 	await _capture("dialogue")
-	print("RENDER: title, island, crafting and dialogue captured")
-	get_tree().quit(0)
+	if not _failed:
+		print("RENDER: title, island, crafting and dialogue captured")
+	get_tree().quit(1 if _failed else 0)
 
 
 func _capture(label: String) -> void:
@@ -41,5 +44,5 @@ func _capture(label: String) -> void:
 		folder.path_join(label + ".png")
 	)
 	if result != OK:
-		printerr("Screenshot write failed: " + label)
-		get_tree().quit(1)
+		printerr("FAIL: Screenshot write failed: " + label)
+		_failed = true
