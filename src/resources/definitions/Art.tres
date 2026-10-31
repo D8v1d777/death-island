@@ -36,6 +36,7 @@
 script = ExtResource("script")
 textures = {
 "survivor":ExtResource("survivor"),"mara":ExtResource("mara"),
+"dave":ExtResource("survivor"),"marie":ExtResource("mara"),
 "palm":ExtResource("palm"),"tree":ExtResource("tree"),"rock":ExtResource("rock"),
 "ore":ExtResource("ore"),"crystal":ExtResource("crystal"),"wood":ExtResource("wood"),
 "fern":ExtResource("fern"),"berries":ExtResource("berries"),
