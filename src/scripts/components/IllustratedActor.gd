@@ -18,10 +18,18 @@ var _base_position := Vector3.ZERO
 
 func _ready() -> void:
 	if not character_id.is_empty():
-		art_key = CharacterRoster.art_key(character_id)
+		set_character_id(character_id)
 	IllustratedArt.shadow(self)
 	body = IllustratedArt.sprite(self, art_key, 3.4, Vector3.ZERO, 8)
 	_base_position = body.position
+
+
+func set_character_id(value: String) -> void:
+	character_id = CharacterRoster.normalize_id(value)
+	art_key = CharacterRoster.art_key(character_id)
+	if is_instance_valid(body):
+		body.texture = DataCatalogGlobal.art.textures.get(art_key, DataCatalogGlobal.art.textures.survivor)
+		body.frame = 0
 
 
 func animate_movement(direction: Vector3) -> void:
