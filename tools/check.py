@@ -111,6 +111,8 @@ def main() -> None:
             "RENDER:",
             timeout=120,
         )
+        run(["xvfb-run", "-a", godot, "--path", "src", "--audio-driver", "Dummy",
+             "res://tests/integration/PerformanceProbe.tscn"], "PERFORMANCE:", timeout=120)
         return
     if "--engine-only" not in sys.argv:
         run([sys.executable, "-m", "unittest", "discover", "-s", "tools", "-p", "test_*.py"])
