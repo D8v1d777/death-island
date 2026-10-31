@@ -78,6 +78,12 @@ static func state(data: Dictionary) -> bool:
 				var dead: bool = entry.get("dead", false)
 				if dead != (float(entry.get("health", 1)) == 0):
 					return false
+				var loot: Variant = entry.get("pending_loot", {})
+				if not loot is Dictionary or (not dead and not loot.is_empty()):
+					return false
+				for item_id in loot:
+					if not DataCatalogGlobal.item(item_id) or not number(loot[item_id], 1, 99):
+						return false
 	for key in ["structures", "pickups"]:
 		if not world.get(key, []) is Array or world.get(key, []).size() > 64:
 			return false
