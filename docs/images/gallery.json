@@ -2,75 +2,138 @@
 	"captures": [
 		{
 			"action": "walk",
+			"character_id": "dave",
+			"dimensions": [
+				1280,
+				720
+			],
 			"file": "01-wreckshore-walk.webp",
+			"menu": "",
 			"moved_meters": 0.916666269302368,
 			"player_position": [
 				2.55833292007446,
 				0.000839314248878509,
 				45
 			],
-			"sprite_frame": 2
+			"scenario": "01-wreckshore-walk",
+			"sha256": "b1f93ab4e932f5745f81944593eb4bc784066f39eb63d81531d80881a64a6a6f",
+			"sprite_frame": 2,
+			"texture": "res://assets/illustrated/Dave.svg",
+			"validated": true
 		},
 		{
 			"action": "gather",
+			"character_id": "dave",
+			"dimensions": [
+				1280,
+				720
+			],
 			"file": "02-jungle-gather.webp",
+			"menu": "",
 			"player_position": [
 				-18,
 				0.000260420143604279,
 				8.80000019073486
 			],
+			"scenario": "02-jungle-gather",
+			"sha256": "b9241949a57cfbed92e7c04b0964006104c3b69837eca04508780baa9a453093",
 			"sprite_frame": 4,
+			"texture": "res://assets/illustrated/Dave.svg",
+			"validated": true,
 			"wood_after": 4,
 			"wood_before": 0
 		},
 		{
 			"action": "attack",
+			"character_id": "dave",
+			"dimensions": [
+				1280,
+				720
+			],
 			"enemy_health_after": 14,
 			"enemy_health_before": 50,
 			"file": "03-boar-combat.webp",
+			"menu": "",
 			"player_position": [
 				25.5,
 				0.000260420143604279,
 				22
 			],
-			"sprite_frame": 3
+			"scenario": "03-boar-combat",
+			"sha256": "39b95b9a20187e6566eb864c4725d0f2be4f086ff75cb1078172e69798fc994d",
+			"sprite_frame": 3,
+			"texture": "res://assets/illustrated/Dave.svg",
+			"validated": true
 		},
 		{
 			"action": "cook",
+			"character_id": "dave",
 			"cooked_meat": 1,
+			"dimensions": [
+				1280,
+				720
+			],
 			"file": "04-campfire-cooking.webp",
+			"menu": "",
 			"player_position": [
 				1.26666676998138,
 				0.000833609083201736,
 				35
 			],
-			"sprite_frame": 6
+			"scenario": "04-campfire-cooking",
+			"sha256": "103ea37fa2ad1ea09ea32c7d8d2b244320291aaee9f2538cc49a54d677f5fe21",
+			"sprite_frame": 6,
+			"texture": "res://assets/illustrated/Dave.svg",
+			"validated": true
 		},
 		{
-			"action": "gather",
-			"file": "05-cave-mining.webp",
-			"ore_after": 2,
-			"ore_before": 0,
-			"player_position": [
-				-19.5,
-				0.000260420143604279,
-				-39
+			"action": "craft",
+			"axes_after": 2,
+			"axes_before": 1,
+			"character_id": "dave",
+			"dimensions": [
+				1280,
+				720
 			],
-			"sprite_frame": 4
+			"file": "05-inventory-crafting.webp",
+			"menu": "crafting",
+			"player_position": [
+				2,
+				0.000260420143604279,
+				35
+			],
+			"scenario": "05-inventory-crafting",
+			"sha256": "3e453e90a52da9c061e3f0fef4e1ce8e79e394d1b76b699748e8be1320b7b65b",
+			"sprite_frame": 6,
+			"texture": "res://assets/illustrated/Dave.svg",
+			"validated": true
 		},
 		{
 			"action": "build",
+			"character_id": "dave",
+			"dimensions": [
+				1280,
+				720
+			],
 			"file": "06-shelter-building.webp",
+			"menu": "",
 			"player_position": [
-				-4.63333368301392,
-				0.000839297368656844,
+				-8.63333129882812,
+				0.000839295098558068,
 				39
 			],
+			"scenario": "06-shelter-building",
+			"sha256": "f991b70dd02a4848c35d950d6fead1bc84bf72cea959839506ab02535bbfbeaf",
 			"shelter_parts_built": 4,
-			"sprite_frame": 4
+			"sprite_frame": 4,
+			"texture": "res://assets/illustrated/Dave.svg",
+			"validated": true
 		}
 	],
+	"character_id": "dave",
 	"engine": "4.3-stable (official)",
 	"method": "Live Godot OpenGL; encounter/inventory fixtures; real gameplay actions.",
+	"seed": 20261030,
+	"source_revision": "649595c88a6674ad5902c58d586ca452be36456f",
 	"version": "0.3.0-dev"
 }

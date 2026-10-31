@@ -1,26 +1,28 @@
 # Death Island
 
 An offline **illustrated 2.5D survival adventure for Android**, built with Godot
-4.3, GDScript and the Compatibility renderer. Play as **Ayla**, explore the island,
+4.3, GDScript and the Compatibility renderer. Choose **Dave or Marie**, explore the island,
 build a camp and decide who makes it home.
 
 ## In-game gallery — 0.3.0-dev
 
-Six actual captures from the running game, showing the controlled character.
+Six fresh captures from the current game, showing Dave's interim runtime design.
 The capture runner prepares encounters/inventory and executes real gameplay
 actions; these are Linux OpenGL captures with the mobile HUD, not phone photographs.
-The art is original and uses an illustrated, fixed-angle presentation.
+The project art uses an illustrated, fixed-angle presentation. Dave/Marie currently
+reuse original project geometry with different palettes; faithful approved-reference
+art is still blocked on recovery of the original images.
 
 | Exploring Wreckshore | Gathering wood in the jungle |
 |---|---|
-| ![Ayla walking beside the wreck and shoreline](docs/images/01-wreckshore-walk.webp) | ![Ayla gathering wood with an axe in the jungle](docs/images/02-jungle-gather.webp) |
+| ![Dave exploring the wreck and shoreline](docs/images/01-wreckshore-walk.webp) | ![Dave gathering driftwood with an axe in the jungle](docs/images/02-jungle-gather.webp) |
 | **Fighting a wild boar** | **Cooking at camp** |
-| ![Ayla attacking a boar with an iron blade, dealing 36 damage](docs/images/03-boar-combat.webp) | ![Ayla cooking meat at a placed campfire](docs/images/04-campfire-cooking.webp) |
-| **Mining iron in Hollow Echo** | **Building a shelter** |
-| ![Ayla mining iron ore in the cave region](docs/images/05-cave-mining.webp) | ![Ayla finishing a four-part shelter at her camp](docs/images/06-shelter-building.webp) |
+| ![Dave attacking a boar with an iron blade, dealing 36 damage](docs/images/03-boar-combat.webp) | ![Dave cooking meat at a placed campfire](docs/images/04-campfire-cooking.webp) |
+| **Inventory supplies and crafting** | **Building a shelter** |
+| ![Crafting menu after making an axe, showing inventory quantities and recipe costs](docs/images/05-inventory-crafting.webp) | ![Dave finishing a four-part shelter at camp](docs/images/06-shelter-building.webp) |
 
 [Capture evidence](docs/images/gallery.json) ·
-[Reproduce the six captures](src/tests/integration/GameplayGallery.gd)
+[Gallery generation and verification](docs/audits/GALLERY.md)
 
 ## Playable development build
 
@@ -32,6 +34,7 @@ The art is original and uses an illustrated, fixed-angle presentation.
 * Three branching quests, Mara's trust/recruitment, companion combat/loot assist,
   and three narrative endings.
 * Day/night cycle, discovery-based travel, touch/keyboard/gamepad input.
+* Dave/Marie selection on the title screen, preserved by save/load; safe default-ID and texture fallbacks.
 * Title, pause, inventory, crafting, journal, map, settings and death screens.
 * Ten manual saves, quicksave and autosave; CRC32 validation, backups and v1 migration.
 
@@ -86,19 +89,19 @@ DEATH_ISLAND_CAPTURE_DIR="$PWD/build/screenshots" LIBGL_ALWAYS_SOFTWARE=1 \
 ### Reproduce the gameplay gallery
 
 ```bash
-DEATH_ISLAND_GALLERY_DIR="$PWD/docs/images" LIBGL_ALWAYS_SOFTWARE=1 \
-  xvfb-run -a godot --path src --audio-driver Dummy --fixed-fps 30 \
-  res://tests/integration/GameplayGallery.tscn
+DEATH_ISLAND_GALLERY_DIR="$PWD/docs/images" python3 tools/check.py --gallery
+python3 tools/validate_gallery.py docs/images --readme README.md
 ```
 
 ## Phone storage budget
 
-The 2.5D art uses about **321 KiB of SVG source**, and the six WebP screenshots
-use less than **700 KiB**. Generated textures remain small; no large art pack is
-required. The original art can be regenerated with `python3 tools/illustrate.py`.
+The 2.5D art uses compact SVG source and the gallery uses WebP captures. No large
+art pack is required. `tools/illustrate.py` describes the original art library;
+the dedicated Dave/Marie strips are separately maintained interim derivatives.
 
 About **2.99 GiB** of verified disposable development files was reclaimed on the
-Termux/Ubuntu host. Android builds enforce an **8 GiB free-space reserve**.
+Termux/Ubuntu host. Development requires a **15 GiB free-space minimum**, with a
+mandatory **pause and inspection at 18 GiB or below**.
 
 ```bash
 python3 tools/storage.py          # report explicit cleanup candidates

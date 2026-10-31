@@ -112,6 +112,10 @@ def main() -> None:
         run(["gdlint", "src/scripts", "src/tests"])
         run(["gdformat", "--check", "src/scripts", "src/tests"])
     run([godot, "--headless", "--path", "src", "--editor", "--import", "--quit"])
+    run([sys.executable, "tools/validate_gallery.py", "docs/images", "--readme", "README.md"],
+        "GALLERY FILES:")
+    run([godot, "--headless", "--path", "src", "--script",
+         str(ROOT / "tools/ValidateImages.gd"), "--", str(ROOT / "docs/images")], "IMAGE DECODE:")
     run(
         [godot, "--headless", "--path", "src", "res://tests/unit/TestRunner.tscn"],
         "UNIT:",
