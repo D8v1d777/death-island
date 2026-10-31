@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_crafting()
 	_test_health_survival()
 	_test_combat()
+	_test_character_roster()
 	print("UNIT: %d passed, %d failed" % [passed, failed])
 	get_tree().quit(1 if failed else 0)
 
@@ -146,3 +147,14 @@ func _test_combat() -> void:
 		"already dead target cannot be killed twice"
 	)
 	target.free()
+
+
+func _test_character_roster() -> void:
+	check(CharacterRoster.has_character("dave"), "Dave profile is registered")
+	check(CharacterRoster.has_character("MARIE"), "Marie lookup is case-insensitive")
+	check(CharacterRoster.display_name("marie") == "Marie", "Marie display name resolves")
+	check(CharacterRoster.art_key("dave") == "dave", "Dave resolves to dedicated art key")
+	check(CharacterRoster.art_key("marie") == "marie", "Marie resolves to dedicated art key")
+	check(CharacterRoster.normalize_id("unknown") == "dave", "unknown ID safely falls back to Dave")
+	check(DataCatalogGlobal.art.textures.has("dave"), "Dave runtime texture is registered")
+	check(DataCatalogGlobal.art.textures.has("marie"), "Marie runtime texture is registered")
