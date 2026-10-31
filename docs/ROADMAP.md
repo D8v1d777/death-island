@@ -13,7 +13,7 @@ trust, one recruitable companion and three endings; validated save slots/backups
 menus, adjustable controls, render-distance/FPS settings, original synthesized SFX
 and bounded local frame-time capture. Original character/prop illustration,
 gameplay-driven action frames, fixed orthographic camera, textured regions,
-completed shelter art and six README gameplay captures are implemented.
+completed shelter art and six README gameplay captures are implemented. Dave/Marie runtime IDs are wired through a character roster; see `docs/audits/CHARACTER_PIPELINE.md` for the remaining final-art gate.
 
 Automated evidence and build results are recorded in `docs/audits/BUILD_VERIFICATION.md`.
 Do not infer device performance from headless tests or software-rendered screenshots.
