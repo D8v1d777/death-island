@@ -9,11 +9,14 @@ import sys
 import shutil
 import tempfile
 
+from storage import require_space
+
 ROOT = Path(__file__).resolve().parents[1]
 ERROR = re.compile(r"SCRIPT ERROR:|^ERROR:|^FAIL:", re.MULTILINE)
 
 
 def run(args: list[str], marker: str = "", timeout: int = 90) -> None:
+    require_space()
     print(f"Running: {' '.join(args)}", flush=True)
     env = {**os.environ, "GODOT_SILENCE_ROOT_WARNING": "1"}
     result = subprocess.run(
@@ -26,6 +29,7 @@ def run(args: list[str], marker: str = "", timeout: int = 90) -> None:
         timeout=timeout,
     )
     print(result.stdout, end="")
+    require_space()
     if (
         result.returncode
         or ERROR.search(result.stdout)
@@ -35,6 +39,7 @@ def run(args: list[str], marker: str = "", timeout: int = 90) -> None:
 
 
 def main() -> None:
+    require_space()
     godot = os.environ.get("GODOT", "godot")
     if "--clean-import" in sys.argv:
         build = ROOT / "build"
@@ -79,6 +84,7 @@ def main() -> None:
         )
         return
     if "--engine-only" not in sys.argv:
+        run([sys.executable, "-m", "unittest", "discover", "-s", "tools", "-p", "test_*.py"])
         run(["gdlint", "src/scripts", "src/tests"])
         run(["gdformat", "--check", "src/scripts", "src/tests"])
     run([godot, "--headless", "--path", "src", "--editor", "--import", "--quit"])
