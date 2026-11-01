@@ -52,6 +52,10 @@ static func collision(parent: CollisionObject3D, size: Vector3, at: Vector3) -> 
 
 static func label(parent: Node3D, text: String, at: Vector3, color: Color = Color.WHITE) -> Label3D:
 	var node := Label3D.new()
+	# Godot 4.3 frees Label3D's mesh before the dummy renderer releases its instance.
+	# Retain label state for headless tests without binding that rendering-only base.
+	if DisplayServer.get_name() == "headless":
+		node.set_base(RID())
 	node.text = text
 	node.font_size = 42
 	node.pixel_size = 0.008
