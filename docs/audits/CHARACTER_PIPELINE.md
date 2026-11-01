@@ -74,3 +74,30 @@ contain zero user image parts, and the paste cache contains a text execution
 contract rather than image data. The Codex session index has no Death Island
 reference session. No recovery from these sources was possible; no prior jobs or
 installer workflows were resumed.
+
+## Manual-test RC1 — 1 November 2026
+
+The current execution requirement restores title selection: **Dave is the visible
+default; Marie remains selectable**. `CharacterChoice` and a preview sourced from
+the corresponding runtime atlas are present. Returning to title resets the choice
+to Dave. Pause-menu or playable-NPC switching changes identity on the stable Player
+node; the inactive survivor retains its own inventory, equipment, vitals and XP
+in validated world/NPC save data. No legacy Companion caller was removed.
+
+The rendered regression suite was strengthened, not relaxed: it checks default
+selection, both previews, all sixteen individual atlas-cell bounds, actual switch
+buttons, dedicated textures, HUD names, and the existing save/load/aspect tests.
+It exposed clipping/neighbor bleed in the original action cells. The diagnostic
+`tools/fit_character_cells.py` measured each original vector cell on an expanded
+canvas. A scale of exactly **1.0** sufficed: only per-cell translation/foot-baseline
+alignment was needed. Independent XML comparison against the integrated source
+confirmed every original drawing, color, limb transform and proportion unchanged.
+The corrected files remain eight 256×448 cells in 2048×448 lossless textures.
+
+Local real OpenGL verification passed 92 character assertions after correction.
+Screenshots in `build/manual-rc1-evidence/` were inspected for the title, both
+identities, switching, HUD and menus. This is **technical approval for an interim
+manual-testing candidate**, not final reference-art approval. The missing approved
+reference originals, dedicated run/hit/death drawings and fuller animation remain
+documented limitations. The title and package instructions explicitly label the art
+interim. The old invalid JPEG/reference transports were not restored.

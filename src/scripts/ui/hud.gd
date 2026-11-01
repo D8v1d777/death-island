@@ -23,6 +23,7 @@ var _refresh_time := 0.0
 var _dialogue_text := ""
 var _loading_label: Label
 var _selected_character := "dave"
+var _character_preview: TextureRect
 var _current_npc_id: String = ""
 var _npc_dialogue_mode: String = "main"  # main, talk, configure
 
@@ -199,6 +200,11 @@ func _process(delta: float) -> void:
 
 func show_menu(menu: String) -> void:
 	_menu = menu
+	if menu in ["main", "loading"]:
+		_toast_time = 0
+		_toast.text = ""
+	if menu == "main":
+		_selected_character = "dave"
 	_gameplay.visible = menu.is_empty()
 	_modal.visible = not menu.is_empty()
 	if not menu.is_empty():
@@ -304,20 +310,59 @@ func apply_text_scale() -> void:
 
 
 func _main_menu() -> void:
+	_text(
+		_content,
+		(
+			"MANUAL TEST · %s · Interim character art"
+			% ProjectSettings.get_setting("application/config/version")
+		),
+		16
+	)
 	_text(_content, "THE TIDE TOOK EVERYTHING. WHAT WILL YOU KEEP?", 20)
 	_text(_content, COPY.text.intro)
-	_text(
-		_content, "You begin as Dave. Meet others, earn their trust, and choose who survives.", 18
+	_text(_content, "Choose your survivor · Dave is the default", 18)
+	var characters := OptionButton.new()
+	characters.name = "CharacterChoice"
+	characters.custom_minimum_size.y = 72
+	for id in CharacterRoster.PROFILES:
+		characters.add_item(CharacterRoster.display_name(id))
+		characters.set_item_metadata(characters.item_count - 1, id)
+		if id == _selected_character:
+			characters.select(characters.item_count - 1)
+	characters.item_selected.connect(
+		func(index: int):
+			_selected_character = str(characters.get_item_metadata(index))
+			_update_character_preview()
 	)
-	_button(_content, "New voyage", func(): GameManagerGlobal.new_game("dave"))
+	_content.add_child(characters)
+	_character_preview = TextureRect.new()
+	_character_preview.name = "CharacterPreview"
+	_character_preview.custom_minimum_size = Vector2(64, 100)
+	_character_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_character_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_content.add_child(_character_preview)
+	_update_character_preview()
+	_button(_content, "New voyage", func(): GameManagerGlobal.new_game(_selected_character))
 	_button(_content, "Continue / Load", GameManagerGlobal.open_menu.bind("load"))
 	_button(_content, "Settings", GameManagerGlobal.open_menu.bind("settings"))
 	_button(_content, "Controls & survival guide", GameManagerGlobal.open_menu.bind("help"))
-	_text(_content, "DEVELOPMENT BUILD · 0.3.0 · Illustrated 2.5D", 16)
+
+
+func _update_character_preview() -> void:
+	var atlas := AtlasTexture.new()
+	atlas.atlas = IllustratedActor.character_texture(_selected_character)
+	atlas.region = Rect2(0, 0, 256, 448)
+	_character_preview.texture = atlas
 
 
 func _pause_menu() -> void:
 	_button(_content, "Resume voyage", GameManagerGlobal.resume_game)
+	var next := "marie" if GameManagerGlobal.get_player().character_id == "dave" else "dave"
+	_button(
+		_content,
+		"Switch to " + CharacterRoster.display_name(next),
+		GameManagerGlobal.switch_character.bind(next)
+	)
 	_button(_content, "Save game", GameManagerGlobal.open_menu.bind("save"))
 	_button(_content, "Load game", GameManagerGlobal.open_menu.bind("load"))
 	_button(_content, "Settings", GameManagerGlobal.open_menu.bind("settings"))
@@ -635,7 +680,7 @@ func _npc_dialogue_menu() -> void:
 	var status: String = rel.get("status", "Neutral")
 	var role: String = rel.get("assigned_role", "none")
 	var is_teamed_up: bool = rel.get("is_teamed_up", false)
-	var can_switch := RelationshipSystemGlobal.can_switch_character(_current_npc_id)
+	var can_switch := PartySystemGlobal.can_switch_to(_current_npc_id)
 
 	# NPC name and portrait
 	var header := HBoxContainer.new()
@@ -718,6 +763,11 @@ func _npc_configure_menu() -> void:
 		return
 
 	var rel := RelationshipSystemGlobal.get_relationship(_current_npc_id)
+	_text(
+		_content,
+		"Experimental roles: farming content and relationship persistence are unfinished.",
+		16
+	)
 	var bond_level: int = rel.get("bond_level", 0)
 	var current_role: String = rel.get("assigned_role", "none")
 
@@ -822,16 +872,7 @@ func _assign_role(role_id: String) -> void:
 
 
 func _switch_character() -> void:
-	if PartySystemGlobal.switch_character(_current_npc_id):
-		GameManagerGlobal.message_posted.emit(
-			(
-				"Now playing as %s!"
-				% CharacterRoster.get_npc(_current_npc_id).get("display_name", _current_npc_id)
-			)
-		)
-		GameManagerGlobal.resume_game()
-	else:
-		GameManagerGlobal.message_posted.emit("Cannot switch characters right now.")
+	GameManagerGlobal.switch_character(_current_npc_id)
 
 
 func _on_dialogue(text: String) -> void:

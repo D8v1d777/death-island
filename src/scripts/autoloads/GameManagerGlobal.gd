@@ -113,6 +113,7 @@ func _start_world(data: Dictionary, character_id: String = "dave") -> void:
 		get_player().deserialize(data.player)
 		QuestSystemGlobal.deserialize(data.get("quests", {}))
 		CraftingSystemGlobal.restore_known(data.get("known_recipes", []))
+	world.remove_npc(CharacterRoster.playable_npc_id(get_player().character_id))
 	_autosave_timer = 0
 	last_save_failed = false
 	is_loading = false
@@ -144,6 +145,16 @@ func get_player() -> Player:
 	if not is_instance_valid(world):
 		return null
 	return world.get_node_or_null("Player") as Player
+
+
+func switch_character(character_id: String) -> bool:
+	if is_loading or not PartySystemGlobal.switch_character(character_id):
+		message_posted.emit("Cannot switch characters right now.")
+		return false
+	InputManagerGlobal.reset()
+	message_posted.emit("Now playing as " + CharacterRoster.display_name(get_player().character_id))
+	resume_game()
+	return true
 
 
 func pause_game() -> void:

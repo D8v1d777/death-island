@@ -9,6 +9,16 @@ const PROFILES: Dictionary = {
 }
 
 const NPC_PROFILES: Dictionary = {
+	"dave_npc":
+	{
+		"display_name": "Dave",
+		"art_key": "dave",
+		"is_playable": true,
+		"starting_location": Vector3(-4, 0, 38),
+		"starting_bond": 0,
+		"default_role": "survivor",
+		"description": "A fellow survivor of the wreck."
+	},
 	"mara":
 	{
 		"display_name": "Mara",
@@ -48,7 +58,13 @@ static func has_character(character_id: String) -> bool:
 
 static func normalize_id(character_id: String) -> String:
 	var normalized := character_id.strip_edges().to_lower()
+	if normalized in ["dave_npc", "marie_npc"]:
+		normalized = normalized.trim_suffix("_npc")
 	return normalized if PROFILES.has(normalized) else "dave"
+
+
+static func playable_npc_id(character_id: String) -> String:
+	return normalize_id(character_id) + "_npc"
 
 
 static func display_name(character_id: String) -> String:

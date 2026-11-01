@@ -30,7 +30,7 @@ def run(args: list[str], marker: str = "", timeout: int = 90) -> None:
     )
     print(result.stdout, end="")
     require_space()
-    if marker in ("UNIT:", "INTEGRATION:", "CHARACTERS:", "STABILITY:", "RECOVERY:"):
+    if marker in ("UNIT:", "INTEGRATION:", "CHARACTERS:", "STABILITY:", "RECOVERY:", "SELECTION:", "PACK:"):
         summary = re.search(re.escape(marker) + r" (\d+) passed, (\d+) failed", result.stdout)
         if not summary or int(summary[1]) == 0 or int(summary[2]) != 0:
             raise SystemExit("Missing, empty or failed assertion summary: " + marker)
@@ -84,7 +84,7 @@ def main() -> None:
             )
         return
     if "--render-only" in sys.argv:
-        os.environ["DEATH_ISLAND_CAPTURE_DIR"] = str(ROOT / "build/screenshots")
+        os.environ.setdefault("DEATH_ISLAND_CAPTURE_DIR", str(ROOT / "build/screenshots"))
         os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
         run(
             ["xvfb-run", "-a", godot, "--path", "src", "--audio-driver", "Dummy",
@@ -140,6 +140,10 @@ def main() -> None:
     run(
         [godot, "--headless", "--path", "src", "res://tests/integration/RecoveryTestRunner.tscn"],
         "RECOVERY:",
+    )
+    run(
+        [godot, "--headless", "--path", "src", "res://tests/integration/SelectionTestRunner.tscn"],
+        "SELECTION:",
     )
     run([godot, "--headless", "--path", "src", "--quit-after", "10"])
 

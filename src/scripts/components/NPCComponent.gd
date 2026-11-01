@@ -67,7 +67,10 @@ func setup(identity: String, npc_owner: NPC) -> void:
 
 	# Setup collision
 	LowPoly.collision(npc_owner, Vector3(0.6, 1.8, 0.5), Vector3(0, 0.9, 0))
-	LowPoly.label(npc_owner, npc_id.to_upper(), IllustratedArt.SCREEN_UP * 3.5, Color("f0d098"))
+	var display_name: String = CharacterRoster.get_npc(npc_id).get("display_name", npc_id)
+	LowPoly.label(
+		npc_owner, display_name.to_upper(), IllustratedArt.SCREEN_UP * 3.5, Color("f0d098")
+	)
 
 	# Load role from relationship system
 	var assigned_role := RelationshipSystemGlobal.get_assigned_role(npc_id)
@@ -531,8 +534,8 @@ func can_interact() -> bool:
 
 func get_interaction_text() -> String:
 	var bond_level := RelationshipSystemGlobal.get_bond_level(npc_id)
-	var role_text := role.capitalize() if not role.is_empty() else "No role"
-	return "Talk / Configure %s (Bond Lv.%d)" % [role_text, bond_level]
+	var display_name: String = CharacterRoster.get_npc(npc_id).get("display_name", npc_id)
+	return "Talk / Configure %s (Bond Lv.%d)" % [display_name, bond_level]
 
 
 func interact(_player: Player) -> void:

@@ -38,6 +38,8 @@ func _run() -> void:
 		await get_tree().process_frame
 	_player = GameManagerGlobal.get_player()
 	_world = GameManagerGlobal.world
+	QuestSystemGlobal.trust = 2
+	QuestSystemGlobal.recruit()
 	_player.inventory_comp.add_item("stone_axe", 1)
 	_player.inventory_comp.add_item("iron_blade", 1)
 	await _place(Vector3(1, 0.1, 45))
@@ -81,6 +83,11 @@ func _run() -> void:
 		enemy.health_comp.current_health < enemy_health
 	)
 
+	if not GameManagerGlobal.switch_character("marie"):
+		printerr("FAIL: gallery could not switch to Marie")
+		get_tree().quit(1)
+		return
+	_player = GameManagerGlobal.get_player()
 	await _place(Vector3(2, 0.1, 35))
 	Input.action_press("move_left")
 	await _frames(4)
@@ -119,7 +126,7 @@ func _run() -> void:
 		JSON.stringify(
 			{
 				"engine": Engine.get_version_info().string,
-				"version": "0.3.0-dev",
+				"version": ProjectSettings.get_setting("application/config/version"),
 				"source_revision": OS.get_environment("DEATH_ISLAND_SOURCE_REVISION"),
 				"seed": 20261030,
 				"character_id": _player.character_id,
@@ -140,6 +147,11 @@ func _capture_title_screen() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await RenderingServer.frame_post_draw
+	var choice := GameManagerGlobal.ui._content.get_node("CharacterChoice") as OptionButton
+	if choice.item_count != 2 or choice.get_item_metadata(choice.selected) != "dave":
+		printerr("FAIL: gallery title does not show Dave default and both choices")
+		_failed = true
+		return
 	var image := get_viewport().get_texture().get_image()
 	if not image:
 		printerr("FAIL: no image from viewport for title screen")
@@ -151,6 +163,7 @@ func _capture_title_screen() -> void:
 		_failed = true
 		return
 	var evidence = {
+		"default_character": "dave",
 		"file": "01-title-character-select.webp",
 		"sha256": FileAccess.get_sha256(_folder.path_join("01-title-character-select.webp")),
 		"action": "title",
@@ -175,6 +188,9 @@ func _frames(count: int) -> void:
 func _place(at: Vector3) -> void:
 	_player.global_position = at
 	_player.velocity = Vector3.ZERO
+	var companion := _world.get_node("Mara") as Companion
+	companion.global_position = at + Vector3(-2.5, 0, 1.5)
+	companion.issue_command("follow")
 	await _frames(12)
 	_world._update_region()
 

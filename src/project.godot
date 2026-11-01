@@ -6,7 +6,7 @@ config/description="An offline survival adventure about trust and escape."
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://assets/Icon.svg"
-config/version="0.3.0-dev"
+config/version="0.3.0-dev-rc1"
 
 [autoload]
 LoggerGlobal="*res://scripts/autoloads/LoggerGlobal.gd"

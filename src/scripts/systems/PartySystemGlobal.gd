@@ -30,8 +30,9 @@ func _on_game_ready() -> void:
 
 
 func _initialize_party() -> void:
-	controlled_character_id = "dave"
-	party_members = ["dave"]
+	var player := GameManagerGlobal.get_player()
+	controlled_character_id = player.character_id if player else "dave"
+	party_members = [controlled_character_id]
 	_pending_switch = ""
 	party_changed.emit()
 
@@ -75,118 +76,61 @@ func unregister_npc_entity(npc_id: String) -> void:
 
 
 func can_switch_to(npc_id: String) -> bool:
-	if not CharacterRoster.is_playable_npc(npc_id):
-		return false
-	if not RelationshipSystemGlobal.can_switch_character(npc_id):
-		return false
-	if npc_id == controlled_character_id:
-		return false
-	return true
+	var identity := npc_id.strip_edges().to_lower()
+	var player := GameManagerGlobal.get_player()
+	return (
+		(identity in CharacterRoster.PROFILES or identity in ["dave_npc", "marie_npc"])
+		and player != null
+		and not GameManagerGlobal.is_loading
+		and not player.health_comp.is_dead()
+		and QuestSystemGlobal.ending.is_empty()
+		and CharacterRoster.normalize_id(identity) != player.character_id
+	)
 
 
 func switch_character(target_npc_id: String) -> bool:
 	if not can_switch_to(target_npc_id):
 		return false
-
-	var world := GameManagerGlobal.world
+	var world := GameManagerGlobal.world as IslandWorld
 	var player_node := GameManagerGlobal.get_player()
-	if not is_instance_valid(world) or not player_node:
+	var target_id := CharacterRoster.normalize_id(target_npc_id)
+	var target_npc := world.get_node_or_null(CharacterRoster.playable_npc_id(target_id)) as NPC
+	if not target_npc or target_npc.health_comp.is_dead():
 		return false
-
-	var old_character_id := controlled_character_id
-
-	# Get the target NPC node
-	var target_npc := world.get_node_or_null(target_npc_id) as NPC
-	if not target_npc or not (target_npc is NPC_SCRIPT):
-		return false
-
-	# Store old player state
+	var old_character_id := player_node.character_id
 	var old_player_data := player_node.serialize()
-	old_player_data["character_id"] = old_character_id
-
-	# Get target NPC data
-	var target_npc_data := target_npc.serialize()
-	target_npc_data["character_id"] = target_npc_id
-
-	# Swap the characters
-	# 1. Convert old player to NPC
-	var old_npc := _convert_player_to_npc(player_node, old_character_id, old_player_data)
-	if not old_npc:
+	var target_data := target_npc.player_state.duplicate(true)
+	if target_data.is_empty():
+		target_data = {
+			"health": target_npc.health_comp.current_health,
+			"stamina": 100,
+			"hunger": 100,
+			"thirst": 100,
+			"inventory": {},
+			"equipment": {},
+			"experience": 0
+		}
+	target_data["character_id"] = target_id
+	target_data["position"] = StateValidation.array3(target_npc.global_position)
+	# Validate and combine NPC carry before mutating either character's ownership.
+	var inventory := InventoryComponent.new()
+	var valid := inventory.deserialize(target_data.get("inventory", {}))
+	valid = valid and inventory.exchange({}, target_npc.npc_comp.inventory_comp.serialize())
+	target_data["inventory"] = inventory.serialize()
+	inventory.free()
+	if not valid or not StateValidation.state({"player": target_data, "world": {}}):
 		return false
-
-	# 2. Convert target NPC to player
-	var new_player := _convert_npc_to_player(target_npc, target_npc_id, target_npc_data)
-	if not new_player:
-		# Rollback
-		_convert_npc_to_player(old_npc, old_character_id, old_player_data)
-		return false
-
-	# Update party
-	party_members.erase(target_npc_id)
-	if not old_character_id in party_members:
-		party_members.append(old_character_id)
-
-	controlled_character_id = target_npc_id
-
-	# Update NPC entity references
-	npc_entities[old_character_id] = old_npc
-	npc_entities.erase(target_npc_id)
-
-	# Update relationship system
-	RelationshipSystemGlobal.set_teamed_up(old_character_id, true)
-	RelationshipSystemGlobal.set_teamed_up(target_npc_id, false)
-
-	character_switched.emit(old_character_id, target_npc_id)
-	party_changed.emit()
-
+	var old_npc := world.spawn_npc(
+		CharacterRoster.playable_npc_id(old_character_id), player_node.global_position
+	)
+	old_npc.player_state = old_player_data
+	old_npc.health_comp.deserialize({"current_health": old_player_data.health})
+	world.remove_npc(str(target_npc.name))
+	# The live Player and its component signals remain bound; only owned state swaps.
+	player_node.deserialize(target_data)
+	_initialize_party()
+	character_switched.emit(old_character_id, target_id)
 	return true
-
-
-func _convert_player_to_npc(player: Player, npc_id: String, player_data: Dictionary) -> NPC:
-	var world := GameManagerGlobal.world
-	if not is_instance_valid(world):
-		return null
-
-	# Create NPC at player position
-	var npc_scene := load("res://scenes/NPC.tscn") as PackedScene
-	var npc := npc_scene.instantiate() as NPC
-	npc.name = npc_id
-	npc.global_position = player.global_position
-	npc.deserialize(player_data)
-
-	# Set NPC role from relationship system
-	var role := RelationshipSystemGlobal.get_assigned_role(npc_id)
-	npc.set_role(role)
-
-	# Add to world
-	world.add_child(npc)
-
-	# Remove old player
-	player.queue_free()
-
-	return npc
-
-
-func _convert_npc_to_player(npc, character_id: String, npc_data: Dictionary) -> Player:
-	var world := GameManagerGlobal.world
-	if not is_instance_valid(world):
-		return null
-
-	# Create player at NPC position
-	var player_scene := load("res://scenes/Player.tscn") as PackedScene
-	var player := player_scene.instantiate() as Player
-	player.name = "Player"
-	player.global_position = npc.global_position
-	player.deserialize(npc_data)
-	player.set_character_id(character_id)
-
-	# Add to world
-	world.add_child(player)
-
-	# Remove NPC
-	npc.queue_free()
-
-	return player
 
 
 func add_to_party(npc_id: String) -> bool:

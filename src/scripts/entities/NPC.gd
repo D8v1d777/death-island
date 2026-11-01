@@ -3,6 +3,7 @@ extends CharacterBody3D
 ## Generic NPC entity. Uses NPCComponent for all behavior.
 
 var illustration: IllustratedActor
+var player_state: Dictionary = {}
 
 @onready var npc_comp: NPCComponent = $NPCComponent
 @onready var health_comp: HealthComponent = $HealthComponent
@@ -53,10 +54,13 @@ func get_status_text() -> String:
 
 
 func serialize() -> Dictionary:
-	return npc_comp.serialize()
+	var data := npc_comp.serialize()
+	data["player_state"] = player_state.duplicate(true)
+	return data
 
 
 func deserialize(data: Dictionary) -> bool:
+	player_state = data.get("player_state", {}).duplicate(true)
 	return npc_comp.deserialize(data)
 
 

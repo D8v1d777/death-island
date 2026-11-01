@@ -148,16 +148,29 @@ func _build_content() -> void:
 		var npc_id: String = npc_data.npc_id
 		if npc_id == "mara":
 			continue
-		var npc := NPC_SCENE.instantiate() as NPC
-		npc.name = npc_id
-		npc.position = npc_data.starting_location
-		add_child(npc)
-		npc.setup(npc_id)
-		_npcs[npc_id] = npc
+		spawn_npc(npc_id, npc_data.starting_location)
 
 	var beacon := Landmark.new()
 	beacon.position = Vector3(0, 0, 43)
 	add_child(beacon)
+
+
+func spawn_npc(npc_id: String, at: Vector3) -> NPC:
+	var npc := NPC_SCENE.instantiate() as NPC
+	npc.name = npc_id
+	npc.position = at
+	add_child(npc)
+	npc.setup(npc_id)
+	_npcs[npc_id] = npc
+	return npc
+
+
+func remove_npc(npc_id: String) -> void:
+	var npc := get_node_or_null(npc_id)
+	if npc:
+		remove_child(npc)
+		npc.queue_free()
+	_npcs.erase(npc_id)
 
 
 func _process(delta: float) -> void:
@@ -370,7 +383,8 @@ func serialize() -> Dictionary:
 		enemies[key] = _enemies[key].serialize()
 	var npcs: Dictionary = {}
 	for key in _npcs:
-		npcs[key] = _npcs[key].serialize()
+		if is_instance_valid(_npcs[key]):
+			npcs[key] = _npcs[key].serialize()
 	var structures: Array = []
 	for node in get_tree().get_nodes_in_group("structures"):
 		structures.append(node.serialize())

@@ -58,6 +58,11 @@ static func state(data: Dictionary) -> bool:
 	if not valid or not _equipment(player.get("equipment", {})):
 		return false
 	var world: Dictionary = data.world
+	if not world.get("npcs", {}) is Dictionary:
+		return false
+	for npc_id in world.get("npcs", {}):
+		if not CharacterRoster.has_npc(npc_id) or not _npc_state(world.npcs[npc_id], npc_id):
+			return false
 	if not companion(world.get("companion", {})):
 		return false
 	if not number(world.get("elapsed", 360.0), 0, 1e9):
@@ -120,6 +125,40 @@ static func state(data: Dictionary) -> bool:
 		if not region is String:
 			return false
 	return _quests(data.get("quests", {}))
+
+
+static func _npc_state(data: Variant, npc_id: String) -> bool:
+	if not data is Dictionary:
+		return false
+	if (
+		not data.get("command") in NPCComponent.COMMANDS
+		or not data.get("role") in ["none", "gatherer", "defender", "farmer", "survivor"]
+		or not data.get("inventory") is Dictionary
+		or not data.get("target_id") is String
+		or not data.get("farm_plot_target", "") is String
+		or not number(data.get("task_remaining"), 0, NPCComponent.TASK_SECONDS)
+		or not number(data.get("assist_timer"), 0, NPCComponent.ASSIST_SECONDS)
+		or not number(data.get("patrol_index", 0), 0, 3)
+	):
+		return false
+	for field in ["position", "hold_position", "patrol_position"]:
+		if not vector(data.get(field)):
+			return false
+	var inventory := InventoryComponent.new()
+	inventory.max_slots = NPCComponent.CARRY_SLOTS
+	inventory.max_weight = NPCComponent.CARRY_WEIGHT
+	var valid := inventory.deserialize(data.inventory)
+	inventory.free()
+	var saved_player: Variant = data.get("player_state", {})
+	if not valid or not saved_player is Dictionary:
+		return false
+	if saved_player.is_empty():
+		return true
+	return (
+		CharacterRoster.is_playable_npc(npc_id)
+		and saved_player.get("character_id") == CharacterRoster.normalize_id(npc_id)
+		and state({"player": saved_player, "world": {}})
+	)
 
 
 static func _equipment(data: Dictionary) -> bool:

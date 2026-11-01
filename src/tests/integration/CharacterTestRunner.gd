@@ -25,9 +25,15 @@ func _run() -> void:
 		GameManagerGlobal.menu_requested.emit("main")
 		await _frames(2)
 		var choice := GameManagerGlobal.ui._content.get_node("CharacterChoice") as OptionButton
+		_check(choice.get_item_metadata(choice.selected) == "dave", "title defaults to Dave")
 		var index := 0 if id == "dave" else 1
 		choice.select(index)
 		choice.item_selected.emit(index)
+		var preview := GameManagerGlobal.ui._content.get_node("CharacterPreview") as TextureRect
+		_check(
+			(preview.texture as AtlasTexture).atlas == DataCatalogGlobal.art.textures[id],
+			"title preview matches " + id
+		)
 		for button in GameManagerGlobal.ui._content.find_children("*", "Button", true, false):
 			if button.text == "New voyage":
 				button.pressed.emit()
@@ -43,6 +49,18 @@ func _run() -> void:
 		)
 		_check(player.illustration.body.hframes == 8, "eight atlas cells " + id)
 		var atlas := player.illustration.body.texture.get_image()
+		for frame in 8:
+			var bounds := atlas.get_region(Rect2i(frame * 256, 0, 256, 448)).get_used_rect()
+			_check(
+				(
+					bounds.has_area()
+					and bounds.position.x > 0
+					and bounds.end.x < 256
+					and bounds.position.y > 0
+					and bounds.end.y < 448
+				),
+				"uncropped transparent cell %s/%d" % [id, frame]
+			)
 		_check(
 			atlas.get_pixel(0, 0).a == 0 and atlas.get_pixel(2047, 447).a == 0,
 			"transparent strip corners " + id
@@ -66,6 +84,7 @@ func _run() -> void:
 		player = GameManagerGlobal.get_player()
 		_check(player.character_id == id, "restore selected " + id)
 		_check(player.illustration.art_key == id, "restore displayed " + id)
+		await _test_switch_buttons(id)
 		var legacy := player.serialize()
 		legacy.erase("character_id")
 		player.deserialize(legacy)
@@ -80,6 +99,32 @@ func _run() -> void:
 	SaveManagerGlobal.delete_save(SaveManagerGlobal.AUTOSAVE_SLOT)
 	print("CHARACTERS: %d passed, %d failed" % [_passed, _failed])
 	get_tree().quit(1 if _failed else 0)
+
+
+func _test_switch_buttons(original_id: String) -> void:
+	var target := "marie" if original_id == "dave" else "dave"
+	for id in [target, original_id]:
+		GameManagerGlobal.open_menu("pause")
+		await _frames(2)
+		var pressed := false
+		for button in GameManagerGlobal.ui._content.find_children("*", "Button", true, false):
+			if button.text == "Switch to " + CharacterRoster.display_name(id):
+				button.pressed.emit()
+				pressed = true
+				break
+		_check(pressed, "pause switch button exists: " + id)
+		await _frames(3)
+		var player := GameManagerGlobal.get_player()
+		_check(player.character_id == id, "pause switches to " + id)
+		_check(
+			player.illustration.body.texture == DataCatalogGlobal.art.textures[id],
+			"switched texture " + id
+		)
+		_check(
+			GameManagerGlobal.ui._status.text.begins_with(id.to_upper()),
+			"switched HUD identity " + id
+		)
+		await _capture("switch-" + id)
 
 
 func _test_texture_fallback() -> void:
