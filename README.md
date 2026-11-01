@@ -35,12 +35,17 @@ art is still blocked on recovery of the original images.
   and three narrative endings.
 * Day/night cycle, discovery-based travel, touch/keyboard/gamepad input.
 * Dave/Marie selection on the title screen, preserved by save/load; safe default-ID and texture fallbacks.
+* Adjustable text size, failure-safe quit/save behavior and persisted loot when world pickup capacity is full.
 * Title, pause, inventory, crafting, journal, map, settings and death screens.
 * Ten manual saves, quicksave and autosave; CRC32 validation, backups and v1 migration.
 
 **This is a playable illustrated development build; M4 device/release validation is pending.** See
 [the implementation and validation ledger](docs/ROADMAP.md) for remaining art,
 performance, accessibility and on-device work.
+
+[Current stabilization evidence](docs/audits/STABILIZATION.md) ·
+[Release blockers and phone checklist](docs/audits/RELEASE_READINESS.md) ·
+[Development release notes](RELEASE_NOTES.md) · [Privacy](docs/PRIVACY.md)
 
 ## Run from source
 

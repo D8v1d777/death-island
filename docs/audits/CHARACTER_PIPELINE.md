@@ -57,3 +57,20 @@ policy block, and that route was stopped.
 **Remaining required input:** the two original approved Dave and Marie image files,
 or accessible original attachment URLs. No face/hair/clothing/silhouette fidelity
 claim is possible from the interim SVG derivatives. No blocked image was retried.
+
+Subsequent metadata queries succeeded using HTTP/1: all three remote branch names
+were enumerated, the old M0 branch tree contains no character images, and both
+repository issues/PRs and their available comments/reviews contain no original
+image attachments. PR #2 has no review approval. This removes the transient API
+access limitation above, but does not recover either original reference.
+The final character/UI suite now passes **52 assertions**, including 1.3x text at
+1280x720, 1600x720 and 1024x768 requested window sizes. A clipped button label found
+in visual inspection was corrected by scaling its minimum width. These are desktop
+layout checks, not physical cutout/multitouch acceptance.
+
+Additional available local-source checks found only plugin sample images under
+Claude/Codex image caches; the three Death Island Claude transcript files each
+contain zero user image parts, and the paste cache contains a text execution
+contract rather than image data. The Codex session index has no Death Island
+reference session. No recovery from these sources was possible; no prior jobs or
+installer workflows were resumed.

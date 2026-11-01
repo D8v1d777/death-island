@@ -42,6 +42,11 @@ the final committed capture files are reviewed again after generation. The obsol
 Both dedicated character screenshots are also produced and inspected under
 `build/screenshots/character-dave.png` and `character-marie.png` by `--render-only`.
 
+Final regeneration used source revision `2e30b53`; all six image hashes remained
+identical to the replacements already visually reviewed at full size. The manifest
+was refreshed to identify that final runtime source. No unreviewed image replaced
+an accepted capture during this final regeneration.
+
 Visual acceptance here covers readable gameplay captures and correct current
 interim texture use. It does not approve reference fidelity, full animation sets,
 phone performance or production art. No original-reference processing was retried.
