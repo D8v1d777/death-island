@@ -31,11 +31,16 @@ func get_interaction_text() -> String:
 
 
 func interact(player: Player) -> bool:
-	if _collected or not player.inventory_comp.add_item(item_id, count):
+	return collect_into(player.inventory_comp)
+
+
+func collect_into(inventory: InventoryComponent) -> bool:
+	if _collected or not inventory.preview_exchange({}, {item_id: count}).success:
 		return false
 	_collected = true
 	remove_from_group("pickups")
 	remove_from_group("interactables")
+	inventory.add_item(item_id, count)
 	GameManagerGlobal.message_posted.emit("+%d %s" % [count, DataCatalogGlobal.item_name(item_id)])
 	queue_free()
 	return true

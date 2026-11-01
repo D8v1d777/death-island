@@ -56,6 +56,23 @@ func has_item(item_id: String, count: int = 1) -> bool:
 	return count > 0 and get_count(item_id) >= count
 
 
+func transfer_to(destination: InventoryComponent, item_id: String, count: int) -> bool:
+	if not is_instance_valid(destination) or destination == self:
+		return false
+	var source_result := preview_exchange({item_id: count}, {})
+	var target_result := destination.preview_exchange({}, {item_id: count})
+	if not source_result.success or not target_result.success:
+		return false
+	# Commit both sides before notifying observers (including autosave/UI callbacks).
+	_items = source_result.items
+	destination._items = target_result.items
+	inventory_changed.emit()
+	destination.inventory_changed.emit()
+	item_removed.emit(item_id, count)
+	destination.item_added.emit(item_id, count)
+	return true
+
+
 func get_count(item_id: String) -> int:
 	return int(_items.get(item_id, 0))
 

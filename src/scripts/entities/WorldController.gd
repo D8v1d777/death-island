@@ -354,11 +354,13 @@ func serialize() -> Dictionary:
 		"resources": ResourceSystemGlobal.serialize(),
 		"enemies": enemies,
 		"structures": structures,
-		"pickups": pickups
+		"pickups": pickups,
+		"companion": get_node("Mara").serialize()
 	}
 
 
 func deserialize(data: Dictionary) -> void:
+	get_node("Mara").deserialize(data.get("companion", {}))
 	elapsed = float(data.get("elapsed", 360))
 	discovered.assign(data.get("discovered", ["beach"]))
 	ResourceSystemGlobal.deserialize(data.get("resources", {}))

@@ -426,6 +426,8 @@ func _crafting_menu() -> void:
 
 
 func _journal_menu() -> void:
+	if QuestSystemGlobal.recruited:
+		_button(_content, "Companion orders", GameManagerGlobal.open_menu.bind("dialogue"))
 	_text(
 		_content,
 		(
@@ -549,6 +551,40 @@ func _dialogue_menu() -> void:
 				_button(_content, choice.label, GameManagerGlobal.complete_quest.bind(choice.id))
 	if QuestSystemGlobal.trust >= 2 and not QuestSystemGlobal.recruited:
 		_button(_content, "Ask Mara to travel with you", QuestSystemGlobal.recruit)
+	if QuestSystemGlobal.recruited:
+		_companion_orders()
+
+
+func _companion_orders() -> void:
+	var companion := GameManagerGlobal.world.get_node("Mara") as Companion
+	_text(
+		_content,
+		(
+			"Order: %s · Carry %.1f / %.0f kg"
+			% [
+				companion.command,
+				companion.inventory_comp.get_current_weight(),
+				companion.inventory_comp.max_weight
+			]
+		)
+	)
+	for key in companion.inventory_comp.get_all_items():
+		_text(
+			_content,
+			"%s × %d" % [DataCatalogGlobal.item_name(key), companion.inventory_comp.get_count(key)],
+			18
+		)
+	for order in ["follow", "hold", "return", "assist"]:
+		_button(_content, order.capitalize(), GameManagerGlobal.command_companion.bind(order))
+	for resource in ResourceSystemGlobal.nearby_resources(
+		companion.global_position, Companion.TASK_RADIUS
+	):
+		if companion.permitted_resource(resource):
+			_button(
+				_content,
+				"Gather " + DataCatalogGlobal.item_name(resource.item_id),
+				GameManagerGlobal.command_companion.bind("gather", str(resource.name))
+			)
 
 
 func _beacon_menu() -> void:

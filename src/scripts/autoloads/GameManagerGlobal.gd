@@ -1,3 +1,5 @@
+# gdlint: disable=max-public-methods
+# Keep UI request delegation in the existing coordinator.
 extends Node
 ## Owns lifecycle and translates UI intent into gameplay-system requests.
 
@@ -262,6 +264,18 @@ func finish_story(choice: String) -> void:
 	var player := get_player()
 	if player:
 		QuestSystemGlobal.finish(choice, player.inventory_comp)
+
+
+func command_companion(command: String, target_id: String = "") -> void:
+	if not is_instance_valid(world):
+		return
+	var companion := world.get_node("Mara") as Companion
+	var target := ResourceSystemGlobal.get_resource(target_id)
+	if companion.issue_command(command, target):
+		message_posted.emit("Mara: " + command.capitalize())
+		resume_game()
+	else:
+		message_posted.emit("Mara cannot take that order here.")
 
 
 func export_telemetry() -> void:
