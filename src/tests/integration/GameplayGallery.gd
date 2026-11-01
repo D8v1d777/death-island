@@ -1,7 +1,7 @@
 extends Node
 ## Six reproducible captures from the live game. Fixtures arrange encounters;
 ## actual input/system APIs perform the actions and verify their state changes.
-## Scenes: title/character select, Dave explore, Dave gather + companion, combat + assist, campfire, shelter.
+## Scenes: title/character select, Dave explore, gather, combat, campfire, shelter.
 
 var _player: Player
 var _world: IslandWorld
