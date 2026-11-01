@@ -113,7 +113,8 @@ func _test_switch_buttons(original_id: String) -> void:
 				pressed = true
 				break
 		_check(pressed, "pause switch button exists: " + id)
-		await _frames(3)
+		# HUD refreshes every 0.1 s; allow that interval on fast CI renderers too.
+		await _frames(8)
 		var player := GameManagerGlobal.get_player()
 		_check(player.character_id == id, "pause switches to " + id)
 		_check(

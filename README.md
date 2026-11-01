@@ -4,9 +4,28 @@ An offline **illustrated 2.5D survival adventure for Android**, built with Godot
 4.3, GDScript and the Compatibility renderer. Choose **Dave or Marie**, explore the island,
 build a camp and decide who makes it home.
 
-## In-game gallery — 0.3.0-dev
+## Manual-test candidate — 0.3.0-dev-rc1
 
-Six fresh captures from the current game, showing Dave's interim runtime design.
+The **Linux ARM64 portable ZIP** uses the existing desktop export preset and is
+tested after extraction with its embedded Godot runtime. Download the
+`death-island-manual-test-linux-arm64` artifact from the latest successful
+[feature-branch CI run](https://github.com/D8v1d777/death-island/actions/workflows/ci.yml?query=branch%3Afeat%2Fdave-marie-character-pipeline).
+Extract the artifact, then the enclosed game ZIP, and launch `death-island.arm64`.
+This is ARM Linux software, **not a Windows/x86 executable**. It needs X11/XWayland
+and OpenGL 3.3. No Godot editor or account is required to run the extracted game.
+
+The `death-island-debug-apk` artifact is the Android ARM64 companion build. APK
+archive/signature/content checks are automated; physical-device installation and
+16-KiB-page compatibility are not certified. These are manual-test artifacts,
+not production releases. Branch pushes cannot automatically publish a beta.
+
+[Testing instructions](docs/manual-test/README-TESTING.txt) ·
+[Manual checklist](docs/manual-test/MANUAL-QA-CHECKLIST.txt) ·
+[Candidate audit and limitations](docs/audits/MANUAL_TEST_RC1.md)
+
+## In-game gallery — 0.3.0-dev-rc1
+
+Six new live captures from the manual-test candidate, showing Dave and Marie.
 The capture runner prepares encounters/inventory and executes real gameplay
 actions; these are Linux OpenGL captures with the mobile HUD, not phone photographs.
 The project art uses an illustrated, fixed-angle presentation. Dave/Marie currently
@@ -18,8 +37,8 @@ art is still blocked on recovery of the original images.
 | ![Title screen with Dave/Marie character selection](docs/images/01-title-character-select.webp) | ![Dave exploring the wreck and shoreline](docs/images/02-dave-explore-wreckshore.webp) |
 | **Gathering with companion** | **Combat with companion assist** |
 | ![Dave gathering wood with companion nearby](docs/images/03-dave-gather-companion.webp) | ![Dave fighting a wild boar with companion assistance](docs/images/04-combat-companion-assist.webp) |
-| **Cooking at camp** | **Building a shelter** |
-| ![Dave cooking meat at a placed campfire](docs/images/05-campfire-cooking.webp) | ![Dave finishing a four-part shelter at camp](docs/images/06-shelter-building.webp) |
+| **Marie cooking at camp after switching** | **Marie building a shelter** |
+| ![Marie cooking meat at a placed campfire](docs/images/05-campfire-cooking.webp) | ![Marie finishing a four-part shelter at camp](docs/images/06-shelter-building.webp) |
 
 [Capture evidence](docs/images/gallery.json) ·
 [Gallery generation and verification](docs/audits/GALLERY.md)
@@ -34,7 +53,7 @@ art is still blocked on recovery of the original images.
 * Three branching quests, Mara's trust/recruitment, companion combat/loot assist,
   and three narrative endings.
 * Day/night cycle, discovery-based travel, touch/keyboard/gamepad input.
-* Dave/Marie selection on the title screen, preserved by save/load; safe default-ID and texture fallbacks.
+* Dave-default title selection, Marie selection, and Pause-menu switching with separate character packs/vitals preserved by save/load; safe default-ID and texture fallbacks.
 * Adjustable text size, failure-safe quit/save behavior and persisted loot when world pickup capacity is full.
 * Title, pause, inventory, crafting, journal, map, settings and death screens.
 * Ten manual saves, quicksave and autosave; CRC32 validation, backups and v1 migration.
@@ -83,6 +102,15 @@ python3 tools/check.py
 Alternatively install `tools/requirements.txt` in a Python virtual environment.
 The wrapper rejects Godot error output even if the engine returns exit code zero.
 Unit and integration runners exercise production APIs and use isolated test saves.
+
+Build and independently test the final Linux ARM64 ZIP from a clean committed tree:
+
+```bash
+python3 tools/build_manual_test.py
+```
+
+Output: `build/manual-test-rc1/death-island-0.3.0-dev-rc1-linux-arm64.zip`, with a
+SHA-256 sidecar, testing instructions, release notes and a manual checklist.
 
 Rendered UI smoke test on Linux:
 

@@ -1,4 +1,24 @@
-# Development notes — 0.3.0-dev, PR #2 stabilization
+# Manual-test candidate — 0.3.0-dev-rc1
+
+- Dave is the visible default in restored title selection; Marie and the matching
+  runtime preview are selectable. Pause-menu switching retains each survivor's
+  own pack, equipment, vitals and experience through save/load.
+- Existing Dave/Marie vector cells were translated into safe atlas bounds; all
+  original drawing geometry, colors and proportions are preserved. Artwork remains
+  explicitly interim; final approved-reference conversion is still blocked.
+- Six current rendered README captures replace the old showcase. The final two
+  show Marie after switching, cooking and building with Mara present.
+- The existing Linux ARM64 portable export is packaged and exercised independently
+  after ZIP extraction; Android remains a separately checked sideload artifact.
+- Beta publication now requires explicit manual dispatch opt-in after security,
+  test and Android build gates. Ordinary pushes only run CI/build artifacts.
+
+See [candidate audit](docs/audits/MANUAL_TEST_RC1.md) and the
+[manual testing instructions](docs/manual-test/README-TESTING.txt). Experimental
+farming/expanded roles, final art, phone acceptance and production distribution
+remain outside this candidate's verified scope.
+
+## Historical development notes — 0.3.0-dev, PR #2 stabilization
 
 This is a **playable development build**, not a production release.
 
