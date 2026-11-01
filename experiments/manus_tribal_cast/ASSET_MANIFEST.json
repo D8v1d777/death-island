@@ -1,0 +1,35 @@
+{
+  "experiment": "manus_tribal_cast_2_5d",
+  "project": "Death Island",
+  "branch": "experiment/manus-tribal-cast-assets",
+  "base_branch": "feat/dave-marie-character-pipeline",
+  "generation_date": "2026-11-01",
+  "status": "2.5D concept/reference package only",
+  "visual_reference": {
+    "source": "Mad Island Steam store page",
+    "url": "https://store.steampowered.com/app/2739590/Mad_Island/",
+    "use": "High-level reference only for readable stylized survival-game presentation; no proprietary characters, clothing, models, textures, animation or UI reproduced. Mature content explicitly excluded."
+  },
+  "workflow": {
+    "image_model": "gpt-image-2.5",
+    "quality": "medium",
+    "output": "Illustrated 2.5D fixed-angle concept sheets",
+    "3d_model_generation": false,
+    "rigging": false,
+    "animation_export": false,
+    "external_paid_api": false
+  },
+  "characters": [
+    {"id":"child_boy_01","display_name":"Island Child Boy","age_category":"child","fictional_age":10,"gender_presentation":"boy","status":"blocked_generation","files":[],"formats":[],"rig_status":"not_applicable","animations":[],"notes":"Youth generation blocked by the image safety system; no repeated retry performed."},
+    {"id":"child_girl_01","display_name":"Island Child Girl","age_category":"child","fictional_age":11,"gender_presentation":"girl","status":"blocked_generation","files":[],"formats":[],"rig_status":"not_applicable","animations":[],"notes":"Youth generation blocked by the image safety system; no repeated retry performed."},
+    {"id":"adolescent_boy_01","display_name":"Island Adolescent Boy","age_category":"adolescent","fictional_age":16,"gender_presentation":"boy","status":"blocked_generation","files":[],"formats":[],"rig_status":"not_applicable","animations":[],"notes":"Youth generation blocked by the image safety system; no repeated retry performed."},
+    {"id":"young_adult_male_01","display_name":"Reef Runner","age_category":"young_adult","fictional_age":22,"gender_presentation":"male","status":"concept_sheet_complete","body_type":"athletic natural adult build","files":["characters/young_adult_male_01/concept_sheet.png"],"formats":["png"],"texture_dimensions":null,"rig_status":"not_created","animations":[],"polygon_count":null,"generation_model":"gpt-image-2.5","provenance":"Original generated concept art for this experiment."},
+    {"id":"adult_female_slim_01","display_name":"Trail Gatherer","age_category":"adult","fictional_age":22,"gender_presentation":"female","body_type":"naturally slender/lean adult frame with small natural bust; fully clothed","files":["characters/adult_female_slim_01/concept_sheet.png"],"formats":["png"],"texture_dimensions":null,"rig_status":"not_created","animations":[],"polygon_count":null,"generation_model":"gpt-image-2.5","provenance":"Original generated concept art for this experiment."},
+    {"id":"adult_female_fuller_01","display_name":"Tide Keeper","age_category":"adult","fictional_age":25,"gender_presentation":"female","body_type":"fuller but naturally proportionate adult build; fully clothed","files":["characters/adult_female_fuller_01/concept_sheet.png"],"formats":["png"],"texture_dimensions":null,"rig_status":"not_created","animations":[],"polygon_count":null,"generation_model":"gpt-image-2.5","provenance":"Original generated concept art for this experiment."},
+    {"id":"adult_male_01","display_name":"Mangrove Warden","age_category":"adult","fictional_age":40,"gender_presentation":"male","body_type":"strong practical hunter/defender build","files":["characters/adult_male_01/concept_sheet.png"],"formats":["png"],"texture_dimensions":null,"rig_status":"not_created","animations":[],"polygon_count":null,"generation_model":"gpt-image-2.5","provenance":"Original generated concept art for this experiment."},
+    {"id":"elder_female_01","display_name":"Keeper of Seeds","age_category":"elderly","fictional_age":70,"gender_presentation":"female","body_type":"age-appropriate mature proportions with visible wrinkles","files":["characters/elder_female_01/concept_sheet.png"],"formats":["png"],"texture_dimensions":null,"rig_status":"not_created","animations":[],"polygon_count":null,"generation_model":"gpt-image-2.5","provenance":"Original generated concept art for this experiment."},
+    {"id":"elder_male_01","display_name":"Saltwind Elder","age_category":"elderly","fictional_age":72,"gender_presentation":"male","body_type":"mature practical proportions with recognizable elder silhouette","files":["characters/elder_male_01/concept_sheet.png"],"formats":["png"],"texture_dimensions":null,"rig_status":"not_created","animations":[],"polygon_count":null,"generation_model":"gpt-image-2.5","provenance":"Original generated concept art for this experiment."}
+  ],
+  "counts": {"requested_characters":9,"concept_sheets_complete":6,"blocked_youth_entries":3,"3d_models_exported":0,"rigged":0,"characters_with_verified_animations":0},
+  "licensing_review": "Review generated-asset usage terms before commercial release. Mad Island is a visual reference only and is not a source asset."
+}
