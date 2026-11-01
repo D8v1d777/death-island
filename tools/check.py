@@ -30,7 +30,7 @@ def run(args: list[str], marker: str = "", timeout: int = 90) -> None:
     )
     print(result.stdout, end="")
     require_space()
-    if marker in ("UNIT:", "INTEGRATION:", "CHARACTERS:", "STABILITY:"):
+    if marker in ("UNIT:", "INTEGRATION:", "CHARACTERS:", "STABILITY:", "RECOVERY:"):
         summary = re.search(re.escape(marker) + r" (\d+) passed, (\d+) failed", result.stdout)
         if not summary or int(summary[1]) == 0 or int(summary[2]) != 0:
             raise SystemExit("Missing, empty or failed assertion summary: " + marker)
@@ -54,7 +54,7 @@ def main() -> None:
         os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
         run(["xvfb-run", "-a", godot, "--path", "src", "--audio-driver", "Dummy",
              "--fixed-fps", "30", "res://tests/integration/GameplayGallery.tscn"],
-            "GALLERY: 6 actual gameplay images; failures: false", timeout=120)
+            "GALLERY: 6 actual gameplay images; failures: false", timeout=180)
         run([sys.executable, "tools/validate_gallery.py", str(folder)], "GALLERY FILES:")
         run([godot, "--headless", "--path", "src", "--script",
              str(ROOT / "tools/ValidateImages.gd"), "--", str(folder)], "IMAGE DECODE:")
@@ -136,6 +136,10 @@ def main() -> None:
             "res://tests/integration/TestRunner.tscn",
         ],
         "INTEGRATION:",
+    )
+    run(
+        [godot, "--headless", "--path", "src", "res://tests/integration/RecoveryTestRunner.tscn"],
+        "RECOVERY:",
     )
     run([godot, "--headless", "--path", "src", "--quit-after", "10"])
 

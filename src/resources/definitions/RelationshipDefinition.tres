@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="RelationshipDefinition" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/RelationshipDefinition.gd" id="script"]
+[resource]
+script = ExtResource("script")
+bond_level_names = ["Stranger", "Acquaintance", "Friend", "Trusted", "Partner", "Soulmate"]
+bond_thresholds = [0, 50, 150, 350, 700, 1200]
+max_bond_level = 5
+daily_bond_caps = {"travel": 30, "gather": 20, "combat": 25, "discovery": 15, "quest": 50, "camp_task": 10, "dialogue": 5}
+bond_rewards = {"level_1": {"unlock": "basic_dialogue"}, "level_2": {"unlock": "team_up", "trust_bonus": 1}, "level_3": {"unlock": "configure_role", "trust_bonus": 1}, "level_4": {"unlock": "character_switch", "trust_bonus": 2}, "level_5": {"unlock": "special_ending", "trust_bonus": 3}}
+relationship_statuses = ["Hostile", "Unfriendly", "Neutral", "Friendly", "Close", "Intimate"]

@@ -261,7 +261,10 @@ func _test_persistence() -> void:
 		SaveManagerGlobal.load_game(1).is_empty(), "invalid experience rejected before live restore"
 	)
 	_write_fixture(1, snapshot, 1)
-	check(SaveManagerGlobal.load_game(1).version == 2, "v1 migrates to v2")
+	check(
+		SaveManagerGlobal.load_game(1).version == SaveManagerGlobal.SAVE_VERSION,
+		"v1 migrates to current save version"
+	)
 	check(
 		SaveManagerGlobal._calculate_checksum("123456789".to_utf8_buffer()) == 0xCBF43926,
 		"CRC32 matches standard test vector"

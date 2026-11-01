@@ -12,6 +12,7 @@ signal loading_changed(progress: float)
 
 const WORLD_PATH := "res://scenes/GameWorld.tscn"
 const UI_PATH := "res://scenes/HUD.tscn"
+const NPC_SCRIPT = preload("res://scripts/entities/NPC.gd")
 const AUTOSAVE_INTERVAL := 180.0
 const SETTINGS_PATH := "user://settings.cfg"
 
@@ -185,6 +186,9 @@ func handle_action(action: String) -> void:
 		else:
 			open_menu(action)
 		return
+	if action == "open_npc_dialogue":
+		# Handled by player interaction
+		return
 	var player := get_player()
 	if player and not is_paused:
 		player.perform_action(action)
@@ -269,13 +273,52 @@ func finish_story(choice: String) -> void:
 func command_companion(command: String, target_id: String = "") -> void:
 	if not is_instance_valid(world):
 		return
-	var companion := world.get_node("Mara") as Companion
-	var target := ResourceSystemGlobal.get_resource(target_id)
-	if companion.issue_command(command, target):
-		message_posted.emit("Mara: " + command.capitalize())
-		resume_game()
+	var legacy_companion := world.get_node_or_null("Mara") as Companion
+	if legacy_companion and QuestSystemGlobal.recruited:
+		if legacy_companion.issue_command(command, ResourceSystemGlobal.get_resource(target_id)):
+			message_posted.emit("Mara: " + command.capitalize())
+			resume_game()
+		else:
+			message_posted.emit("Mara cannot take that order here.")
+		return
+	var controlled_id := PartySystemGlobal.get_controlled_character_id()
+	var party_members := PartySystemGlobal.get_party_members()
+
+	# Find first teamed up NPC in party
+	var companion_npc_id: String = ""
+	for npc_id in party_members:
+		if npc_id != controlled_id:
+			var rel := RelationshipSystemGlobal.get_relationship(npc_id)
+			if rel.get("is_teamed_up", false):
+				companion_npc_id = npc_id
+				break
+
+	if companion_npc_id.is_empty():
+		message_posted.emit("No companion available.")
+		return
+
+	var companion := world.get_node_or_null(companion_npc_id)
+	if companion and companion is NPC_SCRIPT:
+		if companion.npc_comp.issue_command(command, ResourceSystemGlobal.get_resource(target_id)):
+			message_posted.emit("%s: %s" % [companion.name, command.capitalize()])
+			resume_game()
+		else:
+			message_posted.emit("%s cannot take that order here." % companion.name)
 	else:
-		message_posted.emit("Mara cannot take that order here.")
+		message_posted.emit("No companion available.")
+
+
+func open_npc_dialogue(npc_id: String) -> void:
+	if is_loading or not is_instance_valid(world):
+		return
+	var player := get_player()
+	if not player or player.health_comp.is_dead():
+		return
+	pause_game()
+	menu_requested.emit("npc_dialogue")
+	# Store the NPC ID for the dialogue menu
+	# The HUD will read this from a global or we pass it via signal
+	QuestSystemGlobal.dialogue_posted.emit("INTERACTION_NPC:" + npc_id)
 
 
 func export_telemetry() -> void:

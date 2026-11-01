@@ -7,7 +7,7 @@ signal save_corrupted(slot: int, reason: String)
 signal save_list_updated
 
 const SAVE_MAGIC := 0x44495344
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 const HEADER_SIZE := 18
 const MAX_FILE_SIZE := 2 * 1024 * 1024
 const MAX_SAVE_SLOTS := 10
@@ -183,6 +183,9 @@ func _decode(bytes: PackedByteArray, version: int, timestamp: int) -> Dictionary
 		return {}
 	if version == 1:
 		data = migrate_v1(data)
+	if version <= 2:
+		data = migrate_v2(data)
+		data = migrate_v3(data)
 	data["timestamp"] = timestamp
 	return data if StateValidation.state(data) else {}
 
@@ -196,6 +199,66 @@ func migrate_v1(old: Dictionary) -> Dictionary:
 		var time: Variant = data.world.get("time_of_day", 0.25)
 		if StateValidation.number(time, 0, 1):
 			data.world["elapsed"] = float(time) * 1440.0
+	return data
+
+
+func migrate_v2(old: Dictionary) -> Dictionary:
+	var data := old.duplicate(true)
+	data["version"] = SAVE_VERSION
+	# v2 adds relationship, party, base_storage, farming to world data
+	if data.get("world") is Dictionary:
+		var world: Dictionary = data.world
+		world["relationships"] = world.get("relationships", {})
+		world["party"] = world.get("party", {})
+		world["base_storage"] = world.get("base_storage", {})
+		world["farming"] = world.get("farming", {})
+	return data
+
+
+func migrate_v3(old: Dictionary) -> Dictionary:
+	var data := old.duplicate(true)
+	data["version"] = SAVE_VERSION
+	# v3: Mara trust -> bond points migration handled by RelationshipSystemGlobal
+	# QuestSystemGlobal data already includes trust/recruited
+	# Ensure all NPCs have relationship entries
+	if data.get("world") is Dictionary:
+		var world: Dictionary = data.world
+		if not world.get("relationships", {}) is Dictionary:
+			return {}
+		world["relationships"] = world.get("relationships", {})
+		# Initialize default relationships if missing
+		if not world["relationships"].has("mara"):
+			var trust: int = data.get("quests", {}).get("trust", 0)
+			var recruited: bool = data.get("quests", {}).get("recruited", false)
+			world["relationships"]["mara"] = {
+				"bond_points": trust * 50,
+				"bond_level": 0,  # Will be calculated on load
+				"status": "Neutral",
+				"last_interaction_day": 0,
+				"daily_bond_gained": {},
+				"team_up_time": 0.0,
+				"shared_activities": [],
+				"is_teamed_up": recruited,
+				"assigned_role": "gatherer" if recruited else "none"
+			}
+		# Add other NPCs with defaults
+		for npc_id in ["marie_npc", "old_fisher"]:
+			if not world["relationships"].has(npc_id):
+				world["relationships"][npc_id] = {
+					"bond_points": 0,
+					"bond_level": 0,
+					"status": "Neutral",
+					"last_interaction_day": 0,
+					"daily_bond_gained": {},
+					"team_up_time": 0.0,
+					"shared_activities": [],
+					"is_teamed_up": false,
+					"assigned_role": "none"
+				}
+		# Party data
+		world["party"] = world.get(
+			"party", {"controlled_character_id": "dave", "party_members": ["dave"]}
+		)
 	return data
 
 

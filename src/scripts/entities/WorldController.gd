@@ -2,10 +2,13 @@ class_name IslandWorld
 extends Node3D
 ## Fixed authored map, day/night, stations, persistence and bounded hit feedback.
 
+signal day_changed(new_day: int)
+
 const ISLAND = preload("res://resources/definitions/Island.tres")
 const RESOURCE_SCENE = preload("res://scenes/ResourceNode.tscn")
 const ENEMY_SCENE = preload("res://scenes/Enemy.tscn")
 const PICKUP_SCENE = preload("res://scenes/ItemPickup.tscn")
+const NPC_SCENE = preload("res://scenes/NPC.tscn")
 const DAY_SECONDS := 1440.0
 const MAX_OBJECTS := 64
 const HIT_POOL_SIZE := 12
@@ -16,6 +19,7 @@ var elapsed := 600.0
 var discovered: Array[String] = ["beach"]
 var current_region := "beach"
 var _enemies: Dictionary = {}
+var _npcs: Dictionary = {}
 var _environment: Environment
 var _hit_pool: Array[Label3D] = []
 var _hit_times: Array[float] = []
@@ -23,6 +27,7 @@ var _hit_index := 0
 var _region_timer := 0.0
 var _samples: Array[float] = []
 var _ground_material: ShaderMaterial
+var _last_day := 0
 
 
 func _ready() -> void:
@@ -132,10 +137,24 @@ func _build_content() -> void:
 		enemy.position = spawn.position
 		add_child(enemy)
 		_enemies[spawn.id] = enemy
-	var npc := Companion.new()
-	npc.name = "Mara"
-	npc.position = Vector3(4, 0, 32)
-	add_child(npc)
+
+	# Mara still owns the legacy quest, order and save contracts.
+	var companion := Companion.new()
+	companion.name = "Mara"
+	companion.position = CharacterRoster.get_npc_starting_location("mara")
+	add_child(companion)
+	# Keep generic NPC work alongside the working companion until callers migrate.
+	for npc_data in CharacterRoster.get_all_npcs():
+		var npc_id: String = npc_data.npc_id
+		if npc_id == "mara":
+			continue
+		var npc := NPC_SCENE.instantiate() as NPC
+		npc.name = npc_id
+		npc.position = npc_data.starting_location
+		add_child(npc)
+		npc.setup(npc_id)
+		_npcs[npc_id] = npc
+
 	var beacon := Landmark.new()
 	beacon.position = Vector3(0, 0, 43)
 	add_child(beacon)
@@ -153,6 +172,13 @@ func _process(delta: float) -> void:
 		_environment.ambient_light_energy = daylight
 		_ground_material.set_shader_parameter("daylight", daylight)
 		_environment.background_color = Color("0c172d").lerp(Color("366475"), daylight)
+
+	# Check for day change
+	var current_day := int(elapsed / DAY_SECONDS)
+	if current_day != _last_day:
+		_last_day = current_day
+		day_changed.emit(current_day)
+
 	for index in HIT_POOL_SIZE:
 		if _hit_times[index] > 0:
 			_hit_times[index] -= delta
@@ -342,6 +368,9 @@ func serialize() -> Dictionary:
 	var enemies: Dictionary = {}
 	for key in _enemies:
 		enemies[key] = _enemies[key].serialize()
+	var npcs: Dictionary = {}
+	for key in _npcs:
+		npcs[key] = _npcs[key].serialize()
 	var structures: Array = []
 	for node in get_tree().get_nodes_in_group("structures"):
 		structures.append(node.serialize())
@@ -353,6 +382,7 @@ func serialize() -> Dictionary:
 		"discovered": discovered.duplicate(),
 		"resources": ResourceSystemGlobal.serialize(),
 		"enemies": enemies,
+		"npcs": npcs,
 		"structures": structures,
 		"pickups": pickups,
 		"companion": get_node("Mara").serialize()
@@ -367,6 +397,9 @@ func deserialize(data: Dictionary) -> void:
 	for key in data.get("enemies", {}):
 		if _enemies.has(key):
 			_enemies[key].deserialize(data.enemies[key])
+	for key in data.get("npcs", {}):
+		if _npcs.has(key):
+			_npcs[key].deserialize(data.npcs[key])
 	for structure in data.get("structures", []):
 		_add_structure(structure.kind, StateValidation.vec3(structure.position))
 	for pickup in data.get("pickups", []):

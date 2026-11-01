@@ -23,6 +23,8 @@ var _refresh_time := 0.0
 var _dialogue_text := ""
 var _loading_label: Label
 var _selected_character := "dave"
+var _current_npc_id: String = ""
+var _npc_dialogue_mode: String = "main"  # main, talk, configure
 
 
 func _ready() -> void:
@@ -204,7 +206,7 @@ func show_menu(menu: String) -> void:
 
 
 func _refresh_menu() -> void:
-	if _menu in ["inventory", "crafting", "dialogue", "journal"]:
+	if _menu in ["inventory", "crafting", "dialogue", "journal", "npc_dialogue", "npc_configure"]:
 		call_deferred("_render_menu")
 
 
@@ -252,6 +254,10 @@ func _render_menu() -> void:
 			_settings_menu()
 		"dialogue":
 			_dialogue_menu()
+		"npc_dialogue":
+			_npc_dialogue_menu()
+		"npc_configure":
+			_npc_configure_menu()
 		"beacon":
 			_beacon_menu()
 		"death":
@@ -300,20 +306,10 @@ func apply_text_scale() -> void:
 func _main_menu() -> void:
 	_text(_content, "THE TIDE TOOK EVERYTHING. WHAT WILL YOU KEEP?", 20)
 	_text(_content, COPY.text.intro)
-	_text(_content, "Choose your survivor · interim illustrated designs", 18)
-	var characters := OptionButton.new()
-	characters.name = "CharacterChoice"
-	characters.custom_minimum_size.y = 72
-	for id in CharacterRoster.PROFILES:
-		characters.add_item(CharacterRoster.display_name(id))
-		characters.set_item_metadata(characters.item_count - 1, id)
-		if id == _selected_character:
-			characters.select(characters.item_count - 1)
-	characters.item_selected.connect(
-		func(index: int): _selected_character = str(characters.get_item_metadata(index))
+	_text(
+		_content, "You begin as Dave. Meet others, earn their trust, and choose who survives.", 18
 	)
-	_content.add_child(characters)
-	_button(_content, "New voyage", func(): GameManagerGlobal.new_game(_selected_character))
+	_button(_content, "New voyage", func(): GameManagerGlobal.new_game("dave"))
 	_button(_content, "Continue / Load", GameManagerGlobal.open_menu.bind("load"))
 	_button(_content, "Settings", GameManagerGlobal.open_menu.bind("settings"))
 	_button(_content, "Controls & survival guide", GameManagerGlobal.open_menu.bind("help"))
@@ -622,14 +618,229 @@ func _show_message(message: String) -> void:
 	_toast_time = 4
 
 
-func _on_dialogue(text: String) -> void:
-	_dialogue_text = text
-	_refresh_menu()
-
-
 func _loading_progress(progress: float) -> void:
 	if is_instance_valid(_loading_label):
 		_loading_label.text = "Preparing the island… %d%%" % int(progress * 100)
+
+
+func _npc_dialogue_menu() -> void:
+	var npc := GameManagerGlobal.world.get_node_or_null(_current_npc_id) as NPC
+	if not npc:
+		_back()
+		return
+	var rel := RelationshipSystemGlobal.get_relationship(_current_npc_id)
+	var bond_level: int = rel.get("bond_level", 0)
+	var bond_points: int = rel.get("bond_points", 0)
+	var progress := RelationshipSystemGlobal.get_progress_to_next(_current_npc_id)
+	var status: String = rel.get("status", "Neutral")
+	var role: String = rel.get("assigned_role", "none")
+	var is_teamed_up: bool = rel.get("is_teamed_up", false)
+	var can_switch := RelationshipSystemGlobal.can_switch_character(_current_npc_id)
+
+	# NPC name and portrait
+	var header := HBoxContainer.new()
+	_content.add_child(header)
+	var name_label := _text(
+		header, CharacterRoster.get_npc(_current_npc_id).get("display_name", _current_npc_id), 28
+	)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# Bond level display
+	var bond_bar := ProgressBar.new()
+	bond_bar.min_value = 0
+	bond_bar.max_value = 1
+	bond_bar.value = progress
+	bond_bar.custom_minimum_size = Vector2(0, 20)
+	bond_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bond_style := StyleBoxFlat.new()
+	bond_style.bg_color = Color("2a3a4a")
+	bond_style.corner_radius_top_left = 4
+	bond_style.corner_radius_bottom_left = 4
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color("7ac4d4")
+	fill_style.corner_radius_top_left = 4
+	fill_style.corner_radius_bottom_left = 4
+	bond_bar.add_theme_stylebox_override("fill", fill_style)
+	bond_bar.add_theme_stylebox_override("background", bond_style)
+	_content.add_child(bond_bar)
+
+	var bond_info := HBoxContainer.new()
+	_content.add_child(bond_info)
+	_text(bond_info, "Bond Level: %d (%s)" % [bond_level, status], 18).size_flags_horizontal = (
+		Control.SIZE_EXPAND_FILL
+	)
+	_text(bond_info, "%d pts" % bond_points, 16)
+
+	_text(_content, "Progress to next level: %d%%" % int(progress * 100), 16)
+
+	# Current role
+	if not role.is_empty() and role != "none":
+		_text(_content, "Current Role: %s" % role.capitalize(), 18)
+
+	# Team up status
+	if is_teamed_up:
+		_text(_content, "[Teamed Up]", 16).add_theme_color_override("font_color", Color("9cbf79"))
+
+	# Dialogue text (from NPC's dialogue resource)
+	var npc_data := CharacterRoster.get_npc(_current_npc_id)
+	if npc_data and npc_data.get("dialogue_resource"):
+		_text(_content, npc_data.dialogue_resource.introduction, 18)
+	else:
+		_text(_content, "No dialogue available.", 18)
+
+	# Main interaction options
+	_button(_content, "TALK", _open_talk_dialogue)
+
+	var team_up_text := "TEAM UP" if not is_teamed_up else "STOP TEAMING UP"
+	_button(_content, team_up_text, _toggle_team_up)
+
+	_button(_content, "CONFIGURE", GameManagerGlobal.open_menu.bind("npc_configure"))
+
+	# Character switch option (bond level 4+)
+	if can_switch:
+		var switch_btn := _button(
+			_content,
+			(
+				"Switch to play as %s"
+				% CharacterRoster.get_npc(_current_npc_id).get("display_name", _current_npc_id)
+			),
+			func(): _switch_character()
+		)
+		switch_btn.add_theme_color_override("font_color", Color("dfc071"))
+
+	_button(_content, "Back", _back)
+
+
+func _npc_configure_menu() -> void:
+	var npc := GameManagerGlobal.world.get_node_or_null(_current_npc_id) as NPC
+	if not npc:
+		_back()
+		return
+
+	var rel := RelationshipSystemGlobal.get_relationship(_current_npc_id)
+	var bond_level: int = rel.get("bond_level", 0)
+	var current_role: String = rel.get("assigned_role", "none")
+
+	_text(
+		_content,
+		(
+			"Configure %s"
+			% CharacterRoster.get_npc(_current_npc_id).get("display_name", _current_npc_id)
+		),
+		28
+	)
+	_text(_content, "Bond Level: %d" % bond_level, 18)
+	_text(
+		_content,
+		"Current Role: %s" % (current_role.capitalize() if current_role != "none" else "None"),
+		18
+	)
+
+	if bond_level < 3:
+		_text(_content, "Reach Bond Level 3 to assign roles.", 16).add_theme_color_override(
+			"font_color", Color("dd8074")
+		)
+		_button(_content, "Back", func(): GameManagerGlobal.open_menu("npc_dialogue"))
+		return
+
+	var roles := ["none", "gatherer", "defender", "farmer", "survivor"]
+	for role_id in roles:
+		var role_enum := -1
+		match role_id:
+			"gatherer":
+				role_enum = RoleDefinition.NPCRole.GATHERER
+			"defender":
+				role_enum = RoleDefinition.NPCRole.DEFENDER
+			"farmer":
+				role_enum = RoleDefinition.NPCRole.FARMER
+			"survivor":
+				role_enum = RoleDefinition.NPCRole.SURVIVOR
+			_:
+				role_enum = -1
+		var role_config := RoleDefinition.get_config(role_enum)
+		if role_id == "none":
+			role_config = {
+				"display_name": "None", "description": "No assigned role. NPC will follow or idle."
+			}
+
+		var role_btn := _button(
+			_content,
+			(
+				"%s %s"
+				% [
+					role_config.get("display_name", role_id),
+					"(Current)" if role_id == current_role else ""
+				]
+			),
+			func(r = role_id): _assign_role(r)
+		)
+		if role_id == current_role:
+			role_btn.add_theme_color_override("font_color", Color("7ac4d4"))
+
+	_button(_content, "Back", func(): GameManagerGlobal.open_menu("npc_dialogue"))
+
+
+func _open_talk_dialogue() -> void:
+	var npc_data := CharacterRoster.get_npc(_current_npc_id)
+	var dialogue := npc_data.get("dialogue_resource") as DialogueDefinition
+	GameManagerGlobal.message_posted.emit(
+		dialogue.introduction if dialogue else "No dialogue available."
+	)
+
+
+func _toggle_team_up() -> void:
+	var npc := GameManagerGlobal.world.get_node_or_null(_current_npc_id) as NPC
+	if not npc:
+		return
+	var rel := RelationshipSystemGlobal.get_relationship(_current_npc_id)
+	var bond_level: int = rel.get("bond_level", 0)
+	var is_teamed_up: bool = rel.get("is_teamed_up", false)
+
+	if not is_teamed_up:
+		if bond_level >= 2:
+			RelationshipSystemGlobal.set_teamed_up(_current_npc_id, true)
+			npc.npc_comp.issue_command("follow")
+			GameManagerGlobal.message_posted.emit("%s joined your party!" % npc.name)
+		else:
+			GameManagerGlobal.message_posted.emit("Need Bond Level 2 to team up.")
+	else:
+		RelationshipSystemGlobal.set_teamed_up(_current_npc_id, false)
+		npc.npc_comp.issue_command("hold")
+		GameManagerGlobal.message_posted.emit("%s left your party." % npc.name)
+
+	_refresh_menu()
+
+
+func _assign_role(role_id: String) -> void:
+	var npc := GameManagerGlobal.world.get_node_or_null(_current_npc_id) as NPC
+	if not npc:
+		return
+	RelationshipSystemGlobal.set_assigned_role(_current_npc_id, role_id)
+	npc.set_role(role_id)
+	GameManagerGlobal.message_posted.emit("%s is now a %s." % [npc.name, role_id.capitalize()])
+	GameManagerGlobal.open_menu("npc_configure")
+
+
+func _switch_character() -> void:
+	if PartySystemGlobal.switch_character(_current_npc_id):
+		GameManagerGlobal.message_posted.emit(
+			(
+				"Now playing as %s!"
+				% CharacterRoster.get_npc(_current_npc_id).get("display_name", _current_npc_id)
+			)
+		)
+		GameManagerGlobal.resume_game()
+	else:
+		GameManagerGlobal.message_posted.emit("Cannot switch characters right now.")
+
+
+func _on_dialogue(text: String) -> void:
+	if text.begins_with("INTERACTION_NPC:"):
+		_current_npc_id = text.replace("INTERACTION_NPC:", "")
+		GameManagerGlobal.open_menu("npc_dialogue")
+	else:
+		_dialogue_text = text
+		_refresh_menu()
 
 
 func _button(parent: Node, title: String, callback: Callable) -> Button:
