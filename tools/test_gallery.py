@@ -9,7 +9,7 @@ from validate_gallery import FILES, validate_manifest
 class GalleryTest(unittest.TestCase):
     def setUp(self):
         self.manifest = {
-            "engine": "4.3", "source_revision": "test-fixture",
+            "engine": "4.3", "source_revision": "0123456789abcdef0123456789abcdef01234567",
             "captures": [{"file": name, "validated": True, "character_id": "dave",
                           "dimensions": [1280, 720], "sha256": "a" * 64} for name in FILES],
         }
