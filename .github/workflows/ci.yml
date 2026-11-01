@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master, main, develop]
+    branches: [master, main, develop, feat/dave-marie-character-pipeline]
   pull_request:
   workflow_dispatch:
 
@@ -82,3 +82,30 @@ jobs:
             build/android-release-audit.json
           if-no-files-found: error
           retention-days: 14
+
+  publish-beta:
+    needs: build-android
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/dave-marie-character-pipeline'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: death-island-debug-apk
+          path: build
+      - name: Publish installable beta APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="beta-${GITHUB_SHA::7}"
+          gh release create "$tag" \
+            build/death-island-debug.apk \
+            build/death-island-debug.apk.sha256 \
+            build/android-release-audit.json \
+            --target "$GITHUB_SHA" \
+            --title "Death Island Android Beta $tag" \
+            --notes "Installable ARM64 debug beta for manual testing. This is a development build, not a production or Play Store release. Verify the APK checksum using the attached SHA-256 file." \
+            --prerelease
