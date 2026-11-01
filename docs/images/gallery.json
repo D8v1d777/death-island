@@ -134,6 +134,6 @@
 	"engine": "4.3-stable (official)",
 	"method": "Live Godot OpenGL; encounter/inventory fixtures; real gameplay actions.",
 	"seed": 20261030,
-	"source_revision": "649595c88a6674ad5902c58d586ca452be36456f",
+	"source_revision": "2af262718ddb6cd8135dc911445a6b70973f7cfe",
 	"version": "0.3.0-dev"
 }
