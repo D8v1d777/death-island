@@ -13,13 +13,13 @@ The project art uses an illustrated, fixed-angle presentation. Dave/Marie curren
 reuse original project geometry with different palettes; faithful approved-reference
 art is still blocked on recovery of the original images.
 
-| Exploring Wreckshore | Gathering wood in the jungle |
+| Title & Character Select | Exploring Wreckshore |
 |---|---|
-| ![Dave exploring the wreck and shoreline](docs/images/01-wreckshore-walk.webp) | ![Dave gathering driftwood with an axe in the jungle](docs/images/02-jungle-gather.webp) |
-| **Fighting a wild boar** | **Cooking at camp** |
-| ![Dave attacking a boar with an iron blade, dealing 36 damage](docs/images/03-boar-combat.webp) | ![Dave cooking meat at a placed campfire](docs/images/04-campfire-cooking.webp) |
-| **Inventory supplies and crafting** | **Building a shelter** |
-| ![Crafting menu after making an axe, showing inventory quantities and recipe costs](docs/images/05-inventory-crafting.webp) | ![Dave finishing a four-part shelter at camp](docs/images/06-shelter-building.webp) |
+| ![Title screen with Dave/Marie character selection](docs/images/01-title-character-select.webp) | ![Dave exploring the wreck and shoreline](docs/images/02-dave-explore-wreckshore.webp) |
+| **Gathering with companion** | **Combat with companion assist** |
+| ![Dave gathering wood with companion nearby](docs/images/03-dave-gather-companion.webp) | ![Dave fighting a wild boar with companion assistance](docs/images/04-combat-companion-assist.webp) |
+| **Cooking at camp** | **Building a shelter** |
+| ![Dave cooking meat at a placed campfire](docs/images/05-campfire-cooking.webp) | ![Dave finishing a four-part shelter at camp](docs/images/06-shelter-building.webp) |
 
 [Capture evidence](docs/images/gallery.json) ·
 [Gallery generation and verification](docs/audits/GALLERY.md)

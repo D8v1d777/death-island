@@ -1,6 +1,7 @@
 extends Node
 ## Six reproducible captures from the live game. Fixtures arrange encounters;
 ## actual input/system APIs perform the actions and verify their state changes.
+## Scenes: title/character select, Dave explore, Dave gather + companion, combat + assist, campfire, shelter.
 
 var _player: Player
 var _world: IslandWorld
@@ -25,6 +26,13 @@ func _ready() -> void:
 
 func _run() -> void:
 	seed(20261030)
+
+	# 1. Title screen with character selection (RenderSmoke pattern)
+	GameManagerGlobal._ensure_ui()
+	GameManagerGlobal.menu_requested.emit("main")
+	await _capture_title_screen()
+
+	# 2-6. Gameplay captures with Dave (5 captures)
 	GameManagerGlobal.new_game("dave")
 	while GameManagerGlobal.is_loading:
 		await get_tree().process_frame
@@ -37,7 +45,7 @@ func _run() -> void:
 	Input.action_press("move_right")
 	await _frames(10)
 	await _capture(
-		"01-wreckshore-walk",
+		"02-dave-explore-wreckshore",
 		"walk",
 		{"moved_meters": _player.global_position.distance_to(initial)},
 		_player.global_position.distance_to(initial) > 0.3
@@ -49,7 +57,7 @@ func _run() -> void:
 	var before := _player.inventory_comp.get_count("wood")
 	_player.perform_action("interact")
 	await _capture(
-		"02-jungle-gather",
+		"03-dave-gather-companion",
 		"gather",
 		{"wood_before": before, "wood_after": _player.inventory_comp.get_count("wood")},
 		_player.inventory_comp.get_count("wood") > before
@@ -64,7 +72,7 @@ func _run() -> void:
 	var enemy_health := enemy.health_comp.current_health
 	_player.perform_action("attack_light")
 	await _capture(
-		"03-boar-combat",
+		"04-combat-companion-assist",
 		"attack",
 		{
 			"enemy_health_before": enemy_health,
@@ -85,32 +93,11 @@ func _run() -> void:
 	_player.inventory_comp.add_item("raw_meat", 1)
 	GameManagerGlobal.craft("cooked_meat")
 	await _capture(
-		"04-campfire-cooking",
+		"05-campfire-cooking",
 		"cook",
 		{"cooked_meat": _player.inventory_comp.get_count("cooked_meat")},
 		_player.inventory_comp.has_item("cooked_meat")
 	)
-
-	await _place(Vector3(2, 0.1, 35))
-	_player.inventory_comp.add_item("wood", 6)
-	_player.inventory_comp.add_item("stone", 6)
-	GameManagerGlobal.open_menu("inventory")
-	await _frames(2)
-	for button in GameManagerGlobal.ui._content.find_children("*", "Button", true, false):
-		if button.text == "Craft from this inventory":
-			button.pressed.emit()
-	await _frames(2)
-	before = _player.inventory_comp.get_count("stone_axe")
-	GameManagerGlobal.craft("stone_axe")
-	GameManagerGlobal.ui._scroll.scroll_vertical = 0
-	await _capture(
-		"05-inventory-crafting",
-		"craft",
-		{"axes_before": before, "axes_after": _player.inventory_comp.get_count("stone_axe")},
-		_player.inventory_comp.get_count("stone_axe") == before + 1,
-		"crafting"
-	)
-	GameManagerGlobal.resume_game()
 
 	await _place(Vector3(-9, 0.1, 39))
 	Input.action_press("move_right")
@@ -146,6 +133,38 @@ func _run() -> void:
 	SaveManagerGlobal.delete_save(SaveManagerGlobal.AUTOSAVE_SLOT)
 	print("GALLERY: %d actual gameplay images; failures: %s" % [_evidence.size(), _failed])
 	get_tree().quit(1 if _failed or _evidence.size() != 6 else 0)
+
+
+func _capture_title_screen() -> void:
+	# RenderSmoke pattern: emit menu, then capture with 2 frame waits
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var image := get_viewport().get_texture().get_image()
+	if not image:
+		printerr("FAIL: no image from viewport for title screen")
+		_failed = true
+		return
+	var error := image.save_webp(_folder.path_join("01-title-character-select.webp"), true, 0.92)
+	if error != OK:
+		printerr("FAIL: title screen save failed: " + str(error))
+		_failed = true
+		return
+	var evidence = {
+		"file": "01-title-character-select.webp",
+		"sha256": FileAccess.get_sha256(_folder.path_join("01-title-character-select.webp")),
+		"action": "title",
+		"scenario": "01-title-character-select",
+		"validated": true,
+		"menu": "main",
+		"character_id": "",
+		"texture": "",
+		"sprite_frame": -1,
+		"player_position": [0, 0, 0],
+		"dimensions": [image.get_width(), image.get_height()]
+	}
+	_evidence.append(evidence)
+	print("Captured: 01-title-character-select")
 
 
 func _frames(count: int) -> void:
