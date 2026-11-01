@@ -5,6 +5,12 @@ on:
     branches: [master, main, develop, feat/dave-marie-character-pipeline]
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_beta:
+        description: 'Intentionally publish an Android beta prerelease after all checks'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -83,9 +89,35 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  build-manual-test:
+    needs: [security, lint-and-test]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install rendered verification runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+      - name: Package and test extracted Linux ARM64 candidate
+        run: python3 tools/build_manual_test.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: death-island-manual-test-linux-arm64
+          path: |
+            build/manual-test-rc1/*.zip
+            build/manual-test-rc1/*.zip.sha256
+            build/manual-test-rc1/VERIFIED.txt
+          if-no-files-found: error
+          retention-days: 30
+
   publish-beta:
-    needs: build-android
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/dave-marie-character-pipeline'
+    needs: [security, build-android]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_beta == true && github.ref == 'refs/heads/feat/dave-marie-character-pipeline'
     runs-on: ubuntu-24.04
     permissions:
       contents: write

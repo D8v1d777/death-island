@@ -1,0 +1,45 @@
+DEATH ISLAND - @VERSION@
+Source commit: @REVISION@
+Target: Linux ARM64 portable desktop. Renderer: Godot 4.3 Compatibility.
+
+FIXES
+- Restored CharacterChoice with Dave selected by default and Marie selectable.
+- Title preview, names, runtime textures and HUD follow the selected survivor.
+- Pause-menu and NPC Dave/Marie switching retain separate packs, gear, vitals and
+  experience through save/load. The live Player remains stable; inactive state is
+  validated before loading. Duplicate controlled-character NPCs are removed.
+- Original Dave/Marie SVG cells were repositioned within their atlas frames to
+  correct clipping/bleed. No drawing, palette or scale was replaced.
+- Cleared stale character messages between voyages; improved NPC display names.
+- Ordinary branch pushes cannot publish beta releases. Publication requires an
+  explicit manual workflow input and successful security/test/build gates.
+
+VERIFIED FEATURES
+Title selection, both characters, switching, save/load, gathering, inventory,
+crafting, combat, Mara's legacy companion orders/carry, shelter/stations, menus,
+fresh imports, real rendered screenshots and final-ZIP exported runtime testing.
+Consult the repository audit for exact commands and measured results.
+
+MANUAL-TEST LIMITATIONS
+- Dave/Marie use existing interim vector designs. The original approved reference
+  sheets are unavailable. Final likeness/portrait and animation approval is pending.
+- Eight existing poses; walk uses two frames. Dedicated run/hit/death drawings are
+  not available. Art remains visibly labelled interim.
+- Expanded relationship/party roles and farming are experimental. Crop/tool content,
+  farm interaction and full relationship persistence are unfinished. Mara's legacy
+  quest/recruitment/companion system remains the supported progression path.
+- Inactive survivors retain frozen player survival values while represented as NPCs.
+- Desktop software rendering (llvmpipe) on the development Android host is slow;
+  use hardware OpenGL where available. Target-phone performance is not certified.
+- Menus scroll on smaller displays; cutout/multitouch device testing remains open.
+- Save format is v3, with legacy reading. Downgrading to old builds is unsupported.
+
+ANDROID COMPANION ARTIFACT
+If supplied separately, the APK is ARM64, Android 7/API24+, target API35 and debug
+signed for manual sideloading. No connected Android device was available for install
+testing. Godot 4.3 native 16-KiB page compatibility/Play compliance is not certified.
+Do not treat APK archive/signature checks as physical-device acceptance.
+
+POST-MANUAL-TEST WORK
+Final approved art/animation, broader sandbox/biome content, complete experimental
+systems, audio polish, device performance/touch validation, and production signing.

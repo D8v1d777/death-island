@@ -1,0 +1,25 @@
+DEATH ISLAND @VERSION@ - PERSONAL PLAYTEST
+Source: @REVISION@
+
+[ ] Extract to a new folder and launch without a Godot editor installed.
+[ ] Title says manual test/interim art; Dave is selected by default.
+[ ] Select Marie and verify the preview changes. Select Dave again.
+[ ] Start as Dave; confirm DAVE on HUD and correct artwork.
+[ ] Return to title, select Marie, start, and confirm MARIE/artwork.
+[ ] Move, sprint, zoom, interact, attack/heavy attack and dodge.
+[ ] Switch via Pause in both directions. Verify one controlled player.
+[ ] Put different items in each survivor's pack; switch back and check both.
+[ ] Damage/use stamina with one survivor; confirm their state after switching back.
+[ ] Save while controlling Marie, reload, then switch to Dave; inspect packs/gear.
+[ ] Confirm portraits/previews/animation have no missing textures or cut-off limbs.
+[ ] Open inventory, crafting, journal, map, settings, save/load and dialogue.
+[ ] Scroll menus; check text readability and controls at your normal resolution.
+[ ] Gather wood/stone, craft/equip an axe, fight a boar and collect its loot.
+[ ] Talk to Mara, complete the first quest, recruit and try companion orders.
+[ ] Build a campfire, cook, build shelter parts and rest when safe.
+[ ] Pause/resume repeatedly; close after saving and reopen/load.
+[ ] Play for 15-30 minutes. Note frame rate, heat, crashes and confusing behavior.
+[ ] Read known limitations before reporting experimental farming/role behavior.
+
+Report: version/SHA, device/OS/GPU, selected character, steps, screenshot/log,
+expected result, actual result, and whether it happens after a fresh new voyage.
