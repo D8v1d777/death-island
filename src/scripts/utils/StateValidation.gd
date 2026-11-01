@@ -48,6 +48,8 @@ static func state(data: Dictionary) -> bool:
 			return false
 	if not number(player.get("experience", 0), 0, 1000000):
 		return false
+	if not player.get("character_id", "dave") is String:
+		return false
 	if not player.get("inventory") is Dictionary or not player.get("equipment", {}) is Dictionary:
 		return false
 	var inventory := InventoryComponent.new()
@@ -56,6 +58,13 @@ static func state(data: Dictionary) -> bool:
 	if not valid or not _equipment(player.get("equipment", {})):
 		return false
 	var world: Dictionary = data.world
+	if not world.get("npcs", {}) is Dictionary:
+		return false
+	for npc_id in world.get("npcs", {}):
+		if not CharacterRoster.has_npc(npc_id) or not _npc_state(world.npcs[npc_id], npc_id):
+			return false
+	if not companion(world.get("companion", {})):
+		return false
 	if not number(world.get("elapsed", 360.0), 0, 1e9):
 		return false
 	for key in ["resources", "enemies"]:
@@ -66,12 +75,22 @@ static func state(data: Dictionary) -> bool:
 				return false
 			if entry.has("position") and not vector(entry.position):
 				return false
-			for field in ["health", "gathers", "respawn_timer"]:
+			for field in ["health", "gathers", "respawn_timer", "gather_cooldown"]:
 				if entry.has(field) and not number(entry[field], 0, 1e6):
 					return false
 			for field in ["is_depleted", "dead"]:
 				if entry.has(field) and not entry[field] is bool:
 					return false
+			if key == "enemies":
+				var dead: bool = entry.get("dead", false)
+				if dead != (float(entry.get("health", 1)) == 0):
+					return false
+				var loot: Variant = entry.get("pending_loot", {})
+				if not loot is Dictionary or (not dead and not loot.is_empty()):
+					return false
+				for item_id in loot:
+					if not DataCatalogGlobal.item(item_id) or not number(loot[item_id], 1, 99):
+						return false
 	for key in ["structures", "pickups"]:
 		if not world.get(key, []) is Array or world.get(key, []).size() > 64:
 			return false
@@ -108,6 +127,40 @@ static func state(data: Dictionary) -> bool:
 	return _quests(data.get("quests", {}))
 
 
+static func _npc_state(data: Variant, npc_id: String) -> bool:
+	if not data is Dictionary:
+		return false
+	if (
+		not data.get("command") in NPCComponent.COMMANDS
+		or not data.get("role") in ["none", "gatherer", "defender", "farmer", "survivor"]
+		or not data.get("inventory") is Dictionary
+		or not data.get("target_id") is String
+		or not data.get("farm_plot_target", "") is String
+		or not number(data.get("task_remaining"), 0, NPCComponent.TASK_SECONDS)
+		or not number(data.get("assist_timer"), 0, NPCComponent.ASSIST_SECONDS)
+		or not number(data.get("patrol_index", 0), 0, 3)
+	):
+		return false
+	for field in ["position", "hold_position", "patrol_position"]:
+		if not vector(data.get(field)):
+			return false
+	var inventory := InventoryComponent.new()
+	inventory.max_slots = NPCComponent.CARRY_SLOTS
+	inventory.max_weight = NPCComponent.CARRY_WEIGHT
+	var valid := inventory.deserialize(data.inventory)
+	inventory.free()
+	var saved_player: Variant = data.get("player_state", {})
+	if not valid or not saved_player is Dictionary:
+		return false
+	if saved_player.is_empty():
+		return true
+	return (
+		CharacterRoster.is_playable_npc(npc_id)
+		and saved_player.get("character_id") == CharacterRoster.normalize_id(npc_id)
+		and state({"player": saved_player, "world": {}})
+	)
+
+
 static func _equipment(data: Dictionary) -> bool:
 	var equipped: Variant = data.get("equipped", data)
 	var durability: Variant = data.get("condition", {})
@@ -126,23 +179,56 @@ static func _equipment(data: Dictionary) -> bool:
 	return true
 
 
+static func companion(data: Variant) -> bool:
+	if not data is Dictionary:
+		return false
+	if data.is_empty():
+		return true
+	if (
+		not data.get("command") in Companion.COMMANDS
+		or not vector(data.get("position"))
+		or not vector(data.get("hold_position"))
+		or not data.get("inventory") is Dictionary
+		or not data.get("target_id") is String
+		or not number(data.get("task_remaining"), 0, Companion.TASK_SECONDS)
+		or not number(data.get("assist_timer"), 0, Companion.ASSIST_SECONDS)
+	):
+		return false
+	var inventory := InventoryComponent.new()
+	inventory.max_slots = Companion.CARRY_SLOTS
+	inventory.max_weight = Companion.CARRY_WEIGHT
+	var valid := inventory.deserialize(data.inventory)
+	inventory.free()
+	return valid
+
+
 static func _quests(data: Dictionary) -> bool:
 	for key in ["states", "choices", "kills"]:
 		if not data.get(key, {}) is Dictionary:
 			return false
-	for value in data.get("states", {}).values():
-		if not value in ["active", "complete", "failed"]:
+	var definitions: Dictionary = {}
+	for quest: QuestDefinition in QuestSystemGlobal.QUESTS.entries:
+		definitions[quest.quest_id] = quest
+	for key in data.get("states", {}):
+		if not definitions.has(key) or not data.states[key] in ["active", "complete", "failed"]:
 			return false
-	for value in data.get("choices", {}).values():
-		if not value is String:
+	for key in data.get("choices", {}):
+		if not definitions.has(key) or not data.choices[key] is String:
 			return false
-	for value in data.get("kills", {}).values():
-		if not number(value, 0, 1e6):
+		var known := false
+		for choice in definitions[key].choices:
+			known = known or choice.id == data.choices[key]
+		if not known:
 			return false
+	for key in data.get("kills", {}):
+		if not DataCatalogGlobal.enemies.has(key) or not number(data.kills[key], 0, 1e6):
+			return false
+	var ending: Variant = data.get("ending", "")
 	return (
 		number(data.get("trust", 0), -10, 10)
 		and data.get("recruited", false) is bool
-		and data.get("ending", "") is String
+		and ending is String
+		and (ending.is_empty() or QuestSystemGlobal.DIALOGUE.endings.has(ending))
 	)
 
 

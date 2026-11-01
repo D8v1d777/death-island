@@ -14,6 +14,7 @@ const INTERACTION_RANGE := 3.5
 const GRAVITY := 20.0
 const LOOK_SPEED := 2.0
 
+@export_enum("dave", "marie") var character_id := "dave"
 var experience := 0
 var illustration: IllustratedActor
 var _look := Vector2(0, -0.5)
@@ -40,7 +41,9 @@ func _ready() -> void:
 	health_comp.died.connect(_on_died)
 	health_comp.damaged.connect(_on_damaged)
 	inventory_comp.inventory_changed.connect(_reconcile_equipment)
+	character_id = CharacterRoster.normalize_id(character_id)
 	illustration = IllustratedActor.new()
+	illustration.set_character_id(character_id)
 	visual.add_child(illustration)
 	_look = Vector2(0, IllustratedArt.CAMERA_PITCH)
 	camera_pivot.rotation = Vector3(IllustratedArt.CAMERA_PITCH, 0, 0)
@@ -234,6 +237,12 @@ func _on_damaged(_amount: float, _source: Node) -> void:
 	AudioManagerGlobal.play_ui_sfx("hurt")
 
 
+func set_character_id(value: String) -> void:
+	character_id = CharacterRoster.normalize_id(value)
+	if is_instance_valid(illustration):
+		illustration.set_character_id(character_id)
+
+
 func serialize() -> Dictionary:
 	return {
 		"position": StateValidation.array3(global_position),
@@ -244,12 +253,14 @@ func serialize() -> Dictionary:
 		"thirst": survival_comp.thirst,
 		"inventory": inventory_comp.serialize(),
 		"equipment": equipment_comp.serialize(),
+		"character_id": CharacterRoster.normalize_id(character_id),
 		"experience": experience
 	}
 
 
 func deserialize(data: Dictionary) -> void:
 	global_position = StateValidation.vec3(data.position)
+	set_character_id(str(data.get("character_id", "dave")))
 	_look = Vector2(0, IllustratedArt.CAMERA_PITCH)
 	health_comp.deserialize({"current_health": data.health})
 	survival_comp.deserialize(data)

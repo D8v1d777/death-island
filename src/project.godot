@@ -6,7 +6,7 @@ config/description="An offline survival adventure about trust and escape."
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.3", "GL Compatibility")
 config/icon="res://assets/Icon.svg"
-config/version="0.3.0-dev"
+config/version="0.3.0-dev-rc1"
 
 [autoload]
 LoggerGlobal="*res://scripts/autoloads/LoggerGlobal.gd"
@@ -18,6 +18,10 @@ CombatSystemGlobal="*res://scripts/systems/combat_system_global.gd"
 ResourceSystemGlobal="*res://scripts/systems/resource_system_global.gd"
 SurvivalSystemGlobal="*res://scripts/systems/survival_system_global.gd"
 QuestSystemGlobal="*res://scripts/systems/QuestSystemGlobal.gd"
+RelationshipSystemGlobal="*res://scripts/systems/RelationshipSystemGlobal.gd"
+PartySystemGlobal="*res://scripts/systems/PartySystemGlobal.gd"
+BaseStorageGlobal="*res://scripts/systems/BaseStorageGlobal.gd"
+FarmingSystemGlobal="*res://scripts/systems/FarmingSystemGlobal.gd"
 SaveManagerGlobal="*res://scripts/autoloads/SaveManagerGlobal.gd"
 GameManagerGlobal="*res://scripts/autoloads/GameManagerGlobal.gd"
 

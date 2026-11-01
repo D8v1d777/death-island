@@ -5,8 +5,11 @@ extends Node3D
 const ACTION_FRAMES := {
 	"attack": 3, "gather": 4, "drink": 5, "craft": 6, "cook": 6, "build": 4, "dodge": 7
 }
+const ATLAS_SIZE := Vector2i(2048, 448)
+const DISPLAY_HEIGHT := 3.4
 
 var art_key := "survivor"
+var character_id := ""
 var body: Sprite3D
 var action_name := "idle"
 var _action_time := 0.0
@@ -16,9 +19,35 @@ var _base_position := Vector3.ZERO
 
 
 func _ready() -> void:
+	if not character_id.is_empty():
+		set_character_id(character_id)
 	IllustratedArt.shadow(self)
-	body = IllustratedArt.sprite(self, art_key, 3.4, Vector3.ZERO, 8)
+	body = IllustratedArt.sprite(self, art_key, DISPLAY_HEIGHT, Vector3.ZERO, 8)
+	if not character_id.is_empty():
+		set_character_id(character_id)
 	_base_position = body.position
+
+
+func set_character_id(value: String) -> void:
+	character_id = CharacterRoster.normalize_id(value)
+	art_key = CharacterRoster.art_key(character_id)
+	if is_instance_valid(body):
+		var texture := character_texture(character_id)
+		if DisplayServer.get_name() != "headless":
+			body.texture = texture
+		body.visible = texture != null
+		body.pixel_size = DISPLAY_HEIGHT / ATLAS_SIZE.y
+		body.frame = 0
+		_action_time = 0
+		action_name = "idle"
+
+
+static func character_texture(value: String) -> Texture2D:
+	for key in [CharacterRoster.art_key(value), "dave", "survivor"]:
+		var texture: Texture2D = DataCatalogGlobal.art.textures.get(key)
+		if texture and Vector2i(texture.get_width(), texture.get_height()) == ATLAS_SIZE:
+			return texture
+	return null
 
 
 func animate_movement(direction: Vector3) -> void:

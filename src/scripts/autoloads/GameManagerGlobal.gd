@@ -1,3 +1,5 @@
+# gdlint: disable=max-public-methods
+# Keep UI request delegation in the existing coordinator.
 extends Node
 ## Owns lifecycle and translates UI intent into gameplay-system requests.
 
@@ -10,6 +12,7 @@ signal loading_changed(progress: float)
 
 const WORLD_PATH := "res://scenes/GameWorld.tscn"
 const UI_PATH := "res://scenes/HUD.tscn"
+const NPC_SCRIPT = preload("res://scripts/entities/NPC.gd")
 const AUTOSAVE_INTERVAL := 180.0
 const SETTINGS_PATH := "user://settings.cfg"
 
@@ -17,6 +20,7 @@ var world: Node3D
 var ui: CanvasLayer
 var is_paused := false
 var is_loading := false
+var last_save_failed := false
 var settings: Dictionary = {
 	"volume": 0.7,
 	"sensitivity": 0.005,
@@ -24,6 +28,7 @@ var settings: Dictionary = {
 	"quality": 1,
 	"controls_scale": 1.0,
 	"controls_opacity": 0.7,
+	"text_scale": 1.0,
 	"left_handed": false
 }
 var _autosave_timer := 0.0
@@ -60,8 +65,8 @@ func _notification(what: int) -> void:
 			open_menu("pause")
 
 
-func new_game() -> void:
-	_start_world({})
+func new_game(character_id: String = "dave") -> void:
+	_start_world({}, CharacterRoster.normalize_id(character_id))
 
 
 func load_game(slot: int) -> bool:
@@ -73,7 +78,7 @@ func load_game(slot: int) -> bool:
 	return true
 
 
-func _start_world(data: Dictionary) -> void:
+func _start_world(data: Dictionary, character_id: String = "dave") -> void:
 	if is_loading:
 		return
 	is_loading = true
@@ -101,12 +106,16 @@ func _start_world(data: Dictionary) -> void:
 	QuestSystemGlobal.reset()
 	world = packed.instantiate()
 	get_tree().root.add_child(world)
-	if not data.is_empty():
+	if data.is_empty():
+		get_player().set_character_id(character_id)
+	else:
 		world.deserialize(data.world)
 		get_player().deserialize(data.player)
 		QuestSystemGlobal.deserialize(data.get("quests", {}))
 		CraftingSystemGlobal.restore_known(data.get("known_recipes", []))
+	world.remove_npc(CharacterRoster.playable_npc_id(get_player().character_id))
 	_autosave_timer = 0
+	last_save_failed = false
 	is_loading = false
 	is_paused = false
 	get_tree().paused = false
@@ -136,6 +145,16 @@ func get_player() -> Player:
 	if not is_instance_valid(world):
 		return null
 	return world.get_node_or_null("Player") as Player
+
+
+func switch_character(character_id: String) -> bool:
+	if is_loading or not PartySystemGlobal.switch_character(character_id):
+		message_posted.emit("Cannot switch characters right now.")
+		return false
+	InputManagerGlobal.reset()
+	message_posted.emit("Now playing as " + CharacterRoster.display_name(get_player().character_id))
+	resume_game()
+	return true
 
 
 func pause_game() -> void:
@@ -178,6 +197,9 @@ func handle_action(action: String) -> void:
 		else:
 			open_menu(action)
 		return
+	if action == "open_npc_dialogue":
+		# Handled by player interaction
+		return
 	var player := get_player()
 	if player and not is_paused:
 		player.perform_action(action)
@@ -185,7 +207,8 @@ func handle_action(action: String) -> void:
 
 func save(slot: int, notify: bool = true) -> Error:
 	var result := SaveManagerGlobal.save_game(slot)
-	if notify:
+	last_save_failed = result != OK
+	if notify or last_save_failed:
 		message_posted.emit("Game saved." if result == OK else "Save failed. Check free storage.")
 	return result
 
@@ -202,13 +225,19 @@ func snapshot() -> Dictionary:
 	}
 
 
-func request_quit_to_main_menu() -> void:
-	save(SaveManagerGlobal.AUTOSAVE_SLOT, false)
+func request_quit_to_main_menu(discard_unsaved: bool = false) -> void:
+	var player := get_player()
+	if not discard_unsaved and player and not player.health_comp.is_dead():
+		if save(SaveManagerGlobal.AUTOSAVE_SLOT, false) != OK:
+			pause_game()
+			menu_requested.emit("pause")
+			return
 	if is_instance_valid(world):
 		world.queue_free()
 	world = null
 	get_tree().paused = false
 	is_paused = false
+	last_save_failed = false
 	InputManagerGlobal.reset()
 	menu_requested.emit("main")
 
@@ -250,6 +279,57 @@ func finish_story(choice: String) -> void:
 	var player := get_player()
 	if player:
 		QuestSystemGlobal.finish(choice, player.inventory_comp)
+
+
+func command_companion(command: String, target_id: String = "") -> void:
+	if not is_instance_valid(world):
+		return
+	var legacy_companion := world.get_node_or_null("Mara") as Companion
+	if legacy_companion and QuestSystemGlobal.recruited:
+		if legacy_companion.issue_command(command, ResourceSystemGlobal.get_resource(target_id)):
+			message_posted.emit("Mara: " + command.capitalize())
+			resume_game()
+		else:
+			message_posted.emit("Mara cannot take that order here.")
+		return
+	var controlled_id := PartySystemGlobal.get_controlled_character_id()
+	var party_members := PartySystemGlobal.get_party_members()
+
+	# Find first teamed up NPC in party
+	var companion_npc_id: String = ""
+	for npc_id in party_members:
+		if npc_id != controlled_id:
+			var rel := RelationshipSystemGlobal.get_relationship(npc_id)
+			if rel.get("is_teamed_up", false):
+				companion_npc_id = npc_id
+				break
+
+	if companion_npc_id.is_empty():
+		message_posted.emit("No companion available.")
+		return
+
+	var companion := world.get_node_or_null(companion_npc_id)
+	if companion and companion is NPC_SCRIPT:
+		if companion.npc_comp.issue_command(command, ResourceSystemGlobal.get_resource(target_id)):
+			message_posted.emit("%s: %s" % [companion.name, command.capitalize()])
+			resume_game()
+		else:
+			message_posted.emit("%s cannot take that order here." % companion.name)
+	else:
+		message_posted.emit("No companion available.")
+
+
+func open_npc_dialogue(npc_id: String) -> void:
+	if is_loading or not is_instance_valid(world):
+		return
+	var player := get_player()
+	if not player or player.health_comp.is_dead():
+		return
+	pause_game()
+	menu_requested.emit("npc_dialogue")
+	# Store the NPC ID for the dialogue menu
+	# The HUD will read this from a global or we pass it via signal
+	QuestSystemGlobal.dialogue_posted.emit("INTERACTION_NPC:" + npc_id)
 
 
 func export_telemetry() -> void:
@@ -306,6 +386,9 @@ func _load_settings() -> void:
 
 
 func apply_settings() -> void:
+	settings.text_scale = clampf(float(settings.text_scale), 1.0, 1.4)
+	if is_instance_valid(ui):
+		ui.apply_text_scale()
 	AudioManagerGlobal.set_bus_volume_linear("Master", clampf(settings.volume, 0, 1))
 	InputManagerGlobal.set_touch_sensitivity(settings.sensitivity)
 	InputManagerGlobal.haptic_feedback_enabled = settings.vibration

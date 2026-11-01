@@ -1,5 +1,32 @@
 # Development build verification — 2026-10-30
 
+## Later PR #2 stabilization build — 2026-10-31
+
+Current source before documentation/artifact commit: `2e30b53`.
+`python3 tools/check.py`, `--clean-import`, `--render-only`, `--gallery` and
+`python3 tools/build_android.py` completed successfully. Observed: **10 Python
+tests, 48 unit assertions, 145 gameplay assertions, 42 live stability assertions,
+52 character/UI assertions**, four UI smoke captures, two character snapshots,
+window-size captures and six regenerated README images. All six final gallery
+files were decoded and are byte-identical to the full-size visually reviewed
+replacements; only their source revision metadata changed on the final regeneration.
+
+Current local APK: `build/death-island-debug.apk`, **73.0 MiB**, ARM64, debug signed.
+
+```text
+SHA-256: 1060c0d68f513eccb68702962a72d4ba8dac9bf0c0d61bc196d311688e23caa2
+```
+
+Archive, v2 signature, package `org.deathisland.game`, min SDK24 / target SDK35,
+VIBRATE/WAKE_LOCK-only permissions, both character textures and reference-board
+exclusion verified. No device connected; installation/phone performance NOT RUN.
+The explicit release screen fails: target API, debug signing/build, native 16KiB
+alignment and further store/device gates remain. See
+[STABILIZATION](STABILIZATION.md) and [RELEASE_READINESS](RELEASE_READINESS.md).
+CI-built artifacts can have different hashes due to build/signing timestamps.
+
+The original audit below remains historical evidence, not the current APK hash.
+
 ## Result
 
 A playable **0.3.0-dev illustrated 2.5D** Android build was produced locally. This audit does not

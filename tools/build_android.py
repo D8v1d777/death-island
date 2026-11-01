@@ -37,6 +37,9 @@ def main() -> None:
         raise SystemExit("Install Android SDK build-tools 34.0.0.")
     build = ROOT / "build"
     build.mkdir(exist_ok=True)
+    config_root = build / "godot-config"
+    config_root.mkdir(exist_ok=True)
+    os.environ["XDG_CONFIG_HOME"] = str(config_root)
     if platform.machine() in {"aarch64", "arm64"}:
         # Google distributes x86 Linux SDK binaries. Use native distro binaries,
         # keeping the source SDK intact. apksigner itself is a Java program.
@@ -66,7 +69,6 @@ def main() -> None:
     godot = os.environ.get("GODOT", "godot")
     prepare_gradle()
     run([godot, "--headless", "--path", "src", "--editor", "--import", "--quit"])
-    config_root = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config")))
     settings_path = config_root / "godot/editor_settings-4.3.tres"
     settings = settings_path.read_text()
     # Preserve every unrelated editor setting. Godot's --editor --script path
@@ -99,6 +101,12 @@ def main() -> None:
             raise SystemExit(f"Damaged APK entry: {bad}")
         if "lib/arm64-v8a/libgodot_android.so" not in archive.namelist():
             raise SystemExit("ARM64 runtime missing from APK.")
+        names = archive.namelist()
+        if any("PRODUCTION_CHARACTER_BIBLE" in name for name in names):
+            raise SystemExit("Reference-only character boards must not be packaged.")
+        for character in ("Dave", "Marie"):
+            if not any(character + ".svg-" in name and name.endswith(".ctex") for name in names):
+                raise SystemExit("Missing packed character texture: " + character)
     subprocess.run(
         [str(tools / "apksigner"), "verify", "--verbose", str(apk)], check=True
     )

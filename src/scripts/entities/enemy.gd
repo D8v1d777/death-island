@@ -6,6 +6,7 @@ enum AIState { IDLE, PATROL, CHASE, WINDUP, ATTACK, RECOVER, DEAD }
 
 const GRAVITY := 20.0
 const RESPAWN_SECONDS := 240.0
+const LOOT_RETRY_SECONDS := 1.0
 
 @export var enemy_definition: EnemyDefinition
 
@@ -18,6 +19,8 @@ var _knockback := Vector3.ZERO
 var _respawn_timer := 0.0
 var _body: Sprite3D
 var _title: Label3D
+var _pending_loot: Dictionary = {}
+var _loot_retry := 0.0
 
 @onready var health_comp: HealthComponent = $HealthComponent
 @onready var visual: Node3D = $Visual
@@ -43,7 +46,12 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	if _state == AIState.DEAD:
-		if enemy_definition.behavior != "guard":
+		if not _pending_loot.is_empty():
+			_loot_retry -= delta
+			if _loot_retry <= 0:
+				_deliver_loot()
+				_loot_retry = LOOT_RETRY_SECONDS
+		if enemy_definition.behavior != "guard" and _pending_loot.is_empty():
 			_respawn_timer -= delta
 			if _respawn_timer <= 0:
 				_respawn()
@@ -130,11 +138,20 @@ func _on_died() -> void:
 	QuestSystemGlobal.record_kill(enemy_definition.enemy_id)
 	for drop in enemy_definition.loot_table:
 		if randf() <= float(drop.chance):
-			GameManagerGlobal.world.spawn_pickup(
-				drop.item_id,
-				int(drop.count),
-				global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6))
-			)
+			_pending_loot[drop.item_id] = int(_pending_loot.get(drop.item_id, 0)) + int(drop.count)
+	_deliver_loot()
+
+
+func _deliver_loot() -> void:
+	if not is_instance_valid(GameManagerGlobal.world):
+		return
+	for item_id in _pending_loot.keys():
+		if GameManagerGlobal.world.spawn_pickup(
+			item_id,
+			int(_pending_loot[item_id]),
+			global_position + Vector3(randf_range(-0.6, 0.6), 0.1, randf_range(-0.6, 0.6))
+		):
+			_pending_loot.erase(item_id)
 
 
 func _respawn() -> void:
@@ -156,7 +173,8 @@ func serialize() -> Dictionary:
 		"position": StateValidation.array3(global_position),
 		"health": health_comp.current_health,
 		"dead": _state == AIState.DEAD,
-		"respawn_timer": maxf(0, _respawn_timer)
+		"respawn_timer": maxf(0, _respawn_timer),
+		"pending_loot": _pending_loot.duplicate()
 	}
 
 
@@ -165,6 +183,9 @@ func deserialize(data: Dictionary) -> void:
 	health_comp.deserialize({"current_health": data.get("health", enemy_definition.max_health)})
 	_state = AIState.DEAD if data.get("dead", false) else AIState.PATROL
 	_respawn_timer = clampf(float(data.get("respawn_timer", 0)), 0, RESPAWN_SECONDS)
+	_pending_loot.clear()
+	for item_id in data.get("pending_loot", {}):
+		_pending_loot[item_id] = int(data.pending_loot[item_id])
 	visible = _state != AIState.DEAD
 	collision_layer = 2 if visible else 0
 	collision_mask = 25 if visible else 0

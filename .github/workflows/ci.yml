@@ -2,9 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [master, main, develop]
+    branches: [master, main, develop, feat/dave-marie-character-pipeline]
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_beta:
+        description: 'Intentionally publish an Android beta prerelease after all checks'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -36,16 +42,22 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r tools/requirements.txt
+      - name: Fresh source import
+        run: python3 tools/check.py --clean-import
       - run: python tools/check.py
       - name: Render smoke test
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb libgl1-mesa-dri
           python3 tools/check.py --render-only
+          python3 tools/check.py --gallery
       - uses: actions/upload-artifact@v4
         with:
           name: screenshots
-          path: build/screenshots/
+          path: |
+            build/screenshots/
+            build/gallery/
+          if-no-files-found: error
 
   build-android:
     needs: lint-and-test
@@ -65,9 +77,67 @@ jobs:
       - run: sdkmanager 'platforms;android-34' 'platforms;android-35' 'build-tools;34.0.0'
       - name: Build and verify debug APK
         run: python3 tools/build_android.py
+      - name: Report release blockers (not release certification)
+        run: python3 tools/audit_android.py build/death-island-debug.apk --output build/android-release-audit.json
       - uses: actions/upload-artifact@v4
         with:
           name: death-island-debug-apk
-          path: build/death-island-debug.apk
+          path: |
+            build/death-island-debug.apk
+            build/death-island-debug.apk.sha256
+            build/android-release-audit.json
           if-no-files-found: error
           retention-days: 14
+
+  build-manual-test:
+    needs: [security, lint-and-test]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-godot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install rendered verification runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1-mesa-dri
+      - name: Package and test extracted Linux ARM64 candidate
+        run: python3 tools/build_manual_test.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: death-island-manual-test-linux-arm64
+          path: |
+            build/manual-test-rc1/*.zip
+            build/manual-test-rc1/*.zip.sha256
+            build/manual-test-rc1/VERIFIED.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-beta:
+    needs: [security, build-android]
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_beta == true && github.ref == 'refs/heads/feat/dave-marie-character-pipeline'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: death-island-debug-apk
+          path: build
+      - name: Publish installable beta APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          tag="beta-${GITHUB_SHA::7}"
+          gh release create "$tag" \
+            build/death-island-debug.apk \
+            build/death-island-debug.apk.sha256 \
+            build/android-release-audit.json \
+            --target "$GITHUB_SHA" \
+            --title "Death Island Android Beta $tag" \
+            --notes "Installable ARM64 debug beta for manual testing. This is a development build, not a production or Play Store release. Verify the APK checksum using the attached SHA-256 file." \
+            --prerelease

@@ -1,6 +1,7 @@
 extends Node
 ## Six reproducible captures from the live game. Fixtures arrange encounters;
 ## actual input/system APIs perform the actions and verify their state changes.
+## Scenes: title/character select, Dave explore, gather, combat, campfire, shelter.
 
 var _player: Player
 var _world: IslandWorld
@@ -11,6 +12,10 @@ var _failed := false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if DisplayServer.get_name() == "headless":
+		printerr("FAIL: gallery requires live OpenGL rendering")
+		get_tree().quit(1)
+		return
 	SaveManagerGlobal.save_directory = "user://gallery-test-saves/"
 	_folder = OS.get_environment("DEATH_ISLAND_GALLERY_DIR")
 	if _folder.is_empty():
@@ -21,11 +26,20 @@ func _ready() -> void:
 
 func _run() -> void:
 	seed(20261030)
-	GameManagerGlobal.new_game()
+
+	# 1. Title screen with character selection (RenderSmoke pattern)
+	GameManagerGlobal._ensure_ui()
+	GameManagerGlobal.menu_requested.emit("main")
+	await _capture_title_screen()
+
+	# 2-6. Gameplay captures with Dave (5 captures)
+	GameManagerGlobal.new_game("dave")
 	while GameManagerGlobal.is_loading:
 		await get_tree().process_frame
 	_player = GameManagerGlobal.get_player()
 	_world = GameManagerGlobal.world
+	QuestSystemGlobal.trust = 2
+	QuestSystemGlobal.recruit()
 	_player.inventory_comp.add_item("stone_axe", 1)
 	_player.inventory_comp.add_item("iron_blade", 1)
 	await _place(Vector3(1, 0.1, 45))
@@ -33,7 +47,7 @@ func _run() -> void:
 	Input.action_press("move_right")
 	await _frames(10)
 	await _capture(
-		"01-wreckshore-walk",
+		"02-dave-explore-wreckshore",
 		"walk",
 		{"moved_meters": _player.global_position.distance_to(initial)},
 		_player.global_position.distance_to(initial) > 0.3
@@ -45,7 +59,7 @@ func _run() -> void:
 	var before := _player.inventory_comp.get_count("wood")
 	_player.perform_action("interact")
 	await _capture(
-		"02-jungle-gather",
+		"03-dave-gather-companion",
 		"gather",
 		{"wood_before": before, "wood_after": _player.inventory_comp.get_count("wood")},
 		_player.inventory_comp.get_count("wood") > before
@@ -60,7 +74,7 @@ func _run() -> void:
 	var enemy_health := enemy.health_comp.current_health
 	_player.perform_action("attack_light")
 	await _capture(
-		"03-boar-combat",
+		"04-combat-companion-assist",
 		"attack",
 		{
 			"enemy_health_before": enemy_health,
@@ -69,6 +83,11 @@ func _run() -> void:
 		enemy.health_comp.current_health < enemy_health
 	)
 
+	if not GameManagerGlobal.switch_character("marie"):
+		printerr("FAIL: gallery could not switch to Marie")
+		get_tree().quit(1)
+		return
+	_player = GameManagerGlobal.get_player()
 	await _place(Vector3(2, 0.1, 35))
 	Input.action_press("move_left")
 	await _frames(4)
@@ -81,24 +100,13 @@ func _run() -> void:
 	_player.inventory_comp.add_item("raw_meat", 1)
 	GameManagerGlobal.craft("cooked_meat")
 	await _capture(
-		"04-campfire-cooking",
+		"05-campfire-cooking",
 		"cook",
 		{"cooked_meat": _player.inventory_comp.get_count("cooked_meat")},
 		_player.inventory_comp.has_item("cooked_meat")
 	)
 
-	await _place(Vector3(-19.5, 0.1, -39))
-	_player.use_item("stone_axe")
-	before = _player.inventory_comp.get_count("iron_ore")
-	_player.perform_action("interact")
-	await _capture(
-		"05-cave-mining",
-		"gather",
-		{"ore_before": before, "ore_after": _player.inventory_comp.get_count("iron_ore")},
-		_player.inventory_comp.get_count("iron_ore") > before
-	)
-
-	await _place(Vector3(-5, 0.1, 39))
+	await _place(Vector3(-9, 0.1, 39))
 	Input.action_press("move_right")
 	await _frames(4)
 	Input.action_release("move_right")
@@ -110,11 +118,18 @@ func _run() -> void:
 	await _capture("06-shelter-building", "build", {"shelter_parts_built": built}, built == 4)
 
 	var manifest := FileAccess.open(_folder.path_join("gallery.json"), FileAccess.WRITE)
+	if not manifest:
+		printerr("FAIL: gallery manifest could not be saved")
+		get_tree().quit(1)
+		return
 	manifest.store_string(
 		JSON.stringify(
 			{
 				"engine": Engine.get_version_info().string,
-				"version": "0.3.0-dev",
+				"version": ProjectSettings.get_setting("application/config/version"),
+				"source_revision": OS.get_environment("DEATH_ISLAND_SOURCE_REVISION"),
+				"seed": 20261030,
+				"character_id": _player.character_id,
 				"method": "Live Godot OpenGL; encounter/inventory fixtures; real gameplay actions.",
 				"captures": _evidence
 			},
@@ -127,6 +142,44 @@ func _run() -> void:
 	get_tree().quit(1 if _failed or _evidence.size() != 6 else 0)
 
 
+func _capture_title_screen() -> void:
+	# RenderSmoke pattern: emit menu, then capture with 2 frame waits
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	var choice := GameManagerGlobal.ui._content.get_node("CharacterChoice") as OptionButton
+	if choice.item_count != 2 or choice.get_item_metadata(choice.selected) != "dave":
+		printerr("FAIL: gallery title does not show Dave default and both choices")
+		_failed = true
+		return
+	var image := get_viewport().get_texture().get_image()
+	if not image:
+		printerr("FAIL: no image from viewport for title screen")
+		_failed = true
+		return
+	var error := image.save_webp(_folder.path_join("01-title-character-select.webp"), true, 0.92)
+	if error != OK:
+		printerr("FAIL: title screen save failed: " + str(error))
+		_failed = true
+		return
+	var evidence = {
+		"default_character": "dave",
+		"file": "01-title-character-select.webp",
+		"sha256": FileAccess.get_sha256(_folder.path_join("01-title-character-select.webp")),
+		"action": "title",
+		"scenario": "01-title-character-select",
+		"validated": true,
+		"menu": "main",
+		"character_id": "",
+		"texture": "",
+		"sprite_frame": -1,
+		"player_position": [0, 0, 0],
+		"dimensions": [image.get_width(), image.get_height()]
+	}
+	_evidence.append(evidence)
+	print("Captured: 01-title-character-select")
+
+
 func _frames(count: int) -> void:
 	for index in count:
 		await get_tree().physics_frame
@@ -135,15 +188,27 @@ func _frames(count: int) -> void:
 func _place(at: Vector3) -> void:
 	_player.global_position = at
 	_player.velocity = Vector3.ZERO
+	var companion := _world.get_node("Mara") as Companion
+	companion.global_position = at + Vector3(-2.5, 0, 1.5)
+	companion.issue_command("follow")
 	await _frames(12)
 	_world._update_region()
 
 
-func _capture(filename: String, action: String, evidence: Dictionary, valid: bool) -> void:
+func _capture(
+	filename: String, action: String, evidence: Dictionary, valid: bool, menu: String = ""
+) -> void:
 	for index in 4:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
-	if not valid or _player.illustration.action_name != action:
+	if (
+		not valid
+		or _player.illustration.action_name != action
+		or GameManagerGlobal.is_loading
+		or GameManagerGlobal.ui._menu != menu
+		or not _player.illustration.body.texture
+		or _player.health_comp.is_dead()
+	):
 		printerr("FAIL: gallery action was not performed: " + filename)
 		_failed = true
 		return
@@ -154,7 +219,14 @@ func _capture(filename: String, action: String, evidence: Dictionary, valid: boo
 		_failed = true
 		return
 	evidence["file"] = filename + ".webp"
+	evidence["sha256"] = FileAccess.get_sha256(_folder.path_join(filename + ".webp"))
 	evidence["action"] = action
+	evidence["scenario"] = filename
+	evidence["validated"] = true
+	evidence["menu"] = menu
+	evidence["character_id"] = _player.character_id
+	evidence["texture"] = _player.illustration.body.texture.resource_path
+	evidence["dimensions"] = [image.get_width(), image.get_height()]
 	evidence["sprite_frame"] = _player.illustration.body.frame
 	evidence["player_position"] = StateValidation.array3(_player.global_position)
 	_evidence.append(evidence)

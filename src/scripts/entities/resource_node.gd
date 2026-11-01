@@ -5,6 +5,8 @@ extends StaticBody3D
 signal gathered(item_id: String, count: int)
 signal depleted
 
+const GATHER_COOLDOWN := 0.35
+
 @export var item_id := "wood"
 @export var base_count := 2
 @export var required_tool := ""
@@ -51,7 +53,7 @@ func _exit_tree() -> void:
 func _process(delta: float) -> void:
 	_gather_cooldown = maxf(0, _gather_cooldown - delta)
 	if _is_depleted:
-		_respawn_timer -= delta
+		_respawn_timer = maxf(0, _respawn_timer - delta)
 		if _respawn_timer <= 0:
 			_gathers = 0
 			_is_depleted = false
@@ -71,34 +73,46 @@ func get_interaction_text() -> String:
 
 
 func interact(player: Player) -> bool:
+	if not gather_into(player.inventory_comp, player.equipment_comp):
+		return false
+	player.face_point(global_position)
+	player.illustration.play_action("gather")
+	AudioManagerGlobal.play_ui_sfx("gather")
+	InputManagerGlobal.vibrate(20, 0.2)
+	return true
+
+
+func gather_into(inventory: InventoryComponent, equipment: EquipmentComponent = null) -> bool:
 	if _is_depleted or _gather_cooldown > 0:
 		return false
-	if not required_tool.is_empty() and not player.equipment_comp.has_working_tool(required_tool):
+	if (
+		not required_tool.is_empty()
+		and (not equipment or not equipment.has_working_tool(required_tool))
+	):
 		GameManagerGlobal.message_posted.emit("Equip a working Stone Axe first.")
 		return false
 	var bonus := (
-		2 if item_id == "wood" and player.equipment_comp.has_working_tool("stone_axe") else 1
+		2 if item_id == "wood" and equipment and equipment.has_working_tool("stone_axe") else 1
 	)
 	var count := base_count * bonus
-	if not player.inventory_comp.add_item(item_id, count):
+	if not inventory.preview_exchange({}, {item_id: count}).success:
 		GameManagerGlobal.message_posted.emit("Inventory full. Use or drop supplies.")
 		return false
-	_gather_cooldown = 0.35
-	player.face_point(global_position)
-	player.illustration.play_action("gather")
+	# Commit depletion before inventory signals can re-enter gathering or save.
+	_gather_cooldown = GATHER_COOLDOWN
 	_gathers += 1
 	if bonus > 1 or not required_tool.is_empty():
-		player.equipment_comp.wear_weapon()
+		equipment.wear_weapon()
 	if _gathers >= max_gathers:
 		_is_depleted = true
 		_respawn_timer = respawn_seconds
 		_sync_visibility()
+	inventory.add_item(item_id, count)
+	if _is_depleted:
 		depleted.emit()
 	gathered.emit(item_id, count)
 	ResourceSystemGlobal.resource_gathered.emit(self, item_id, count)
 	GameManagerGlobal.message_posted.emit("+%d %s" % [count, DataCatalogGlobal.item_name(item_id)])
-	AudioManagerGlobal.play_ui_sfx("gather")
-	InputManagerGlobal.vibrate(20, 0.2)
 	return true
 
 
@@ -108,11 +122,17 @@ func _sync_visibility() -> void:
 
 
 func serialize() -> Dictionary:
-	return {"gathers": _gathers, "is_depleted": _is_depleted, "respawn_timer": _respawn_timer}
+	return {
+		"gathers": _gathers,
+		"is_depleted": _is_depleted,
+		"respawn_timer": maxf(0, _respawn_timer),
+		"gather_cooldown": _gather_cooldown
+	}
 
 
 func deserialize(data: Dictionary) -> void:
 	_gathers = clampi(int(data.get("gathers", 0)), 0, max_gathers)
 	_is_depleted = data.get("is_depleted", false)
 	_respawn_timer = clampf(float(data.get("respawn_timer", 0)), 0, respawn_seconds)
+	_gather_cooldown = clampf(float(data.get("gather_cooldown", 0)), 0, GATHER_COOLDOWN)
 	_sync_visibility()

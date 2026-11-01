@@ -7,15 +7,19 @@ import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 GIB = 1024**3
-MIN_FREE = 8 * GIB
+MIN_FREE = 15 * GIB
+PAUSE_FREE = 18 * GIB
 
 
 def require_space(path: Path = ROOT) -> None:
     free = shutil.disk_usage(path).free
     if free < MIN_FREE:
         raise SystemExit(
-            f"Build stopped: {free / GIB:.1f} GiB free; preserve an 8 GiB reserve. "
-            "Run python3 tools/storage.py to inspect disposable artifacts."
+            f"Build stopped: {free / GIB:.2f} GiB free; below the 15 GiB minimum."
+        )
+    if free <= PAUSE_FREE:
+        raise SystemExit(
+            f"Build stopped: {free / GIB:.2f} GiB free; pause and inspect at 18 GiB or below."
         )
 
 

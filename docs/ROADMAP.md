@@ -1,6 +1,14 @@
 # Roadmap — Death Island
 
-## Implementation ledger — 2026-10-30
+## Implementation ledger — 2026-10-31
+
+Current status: **stabilization, not a release candidate**. PR #2 adds title-screen
+Dave/Marie selection and persistence/fallback checks, a regenerated six-image
+gameplay gallery, save/progression/capacity-loss fixes, scalable text, rendered
+window-size checks and explicit Android release-blocker reporting. Exact commands,
+commit/file mapping and deferred work: [STABILIZATION](audits/STABILIZATION.md).
+Faithful character art still requires the original approved images. No physical
+phone acceptance or Play compliance is claimed.
 
 The original milestone checklists below describe the full product target. They
 are not completion certificates. The repository now has a playable illustrated
@@ -13,25 +21,49 @@ trust, one recruitable companion and three endings; validated save slots/backups
 menus, adjustable controls, render-distance/FPS settings, original synthesized SFX
 and bounded local frame-time capture. Original character/prop illustration,
 gameplay-driven action frames, fixed orthographic camera, textured regions,
-completed shelter art and six README gameplay captures are implemented.
+completed shelter art and six README gameplay captures are implemented. Dave/Marie runtime IDs are wired through a character roster; see `docs/audits/CHARACTER_PIPELINE.md` for the remaining final-art gate.
 
 Automated evidence and build results are recorded in `docs/audits/BUILD_VERIFICATION.md`.
 Do not infer device performance from headless tests or software-rendered screenshots.
 
+COMP-01 utility implementation is verified: bounded carry/gather orders, return
+transactions, combat interruption and persistence. See [acceptance evidence](audits/COMP-01.md).
+
 Still required for the **entire M0–M4 roadmap**:
 
-* M0: verify the rewritten workflow on GitHub after publishing changes.
+* M0: final feature-branch CI/review and integration; baseline PR CI is verified.
 * M1: install and play the acceptance loop on the target Android phone, including
   multitouch, lifecycle/backgrounding and real save/relaunch.
-* M2: production-quality terrain/caves and navigation, companion carry/gather depth,
+* M2: production-quality terrain/caves and navigation, companion route/balance playtesting,
   complete equipment-slot content, quest-failure paths and broader balance testing.
 * M3: finished character animation and environment art, music/ambience, richer combat
-  feedback, freely repositionable touch controls/text scaling, effect-quality tiers,
+  feedback, freely repositionable touch controls, further accessibility, effect-quality tiers,
   thermal/battery APIs, percentile telemetry, sustained and multi-device profiling.
 * M4: release signing/AAB, current Play requirements (including native-library page
   alignment), low-storage/pause-resume/long-session validation, release review.
 
 The build is labeled `0.3.0-dev`; release certification still requires those gates.
+
+### Remaining work, ordered by impact and dependency
+
+| Priority | Gap / impact | Concrete next work and reason it remains separate |
+|---|---|---|
+| P0 art gate | Dave/Marie references missing; interim geometry is not faithful final art | Supply the two approved original binaries/URLs, validate transport/import and match face/hair/costume/silhouette; existing corrupt staged copies cannot supply the missing detail |
+| P1 correctness | Durable equipment condition is shared by item type | Design per-instance IDs/condition and transport through inventory, drops, repairs and versioned saves; replacing condition with a reset would introduce free-repair exploits, so a schema migration and dedicated regression set are required |
+| P1 companion | Carry/gather depth absent in this branch | Reconcile the separately preserved COMP-01 working tree, then add bounded orders/bag/atomic transfer/combat interruption and persistence; do not overwrite or silently duplicate that work |
+| P1 release | API35/debug/4KiB native libraries are not current Play-ready | Coordinated supported engine/template + AGP/API36 migration, release/upload signing, AAB validation, ELF/RELRO/ZIP checks and 16KiB execution; merely raising targetSdk or ZIP-aligning cannot fix prebuilt native code |
+| P1 device | No connected Narzo; native GPU, multitouch, lifecycle and battery unknown | Execute the short checklist in `docs/audits/RELEASE_READINESS.md` on the actual phone; software-rendered snapshots do not answer these questions |
+| P2 world | Flat physics terrain, illustrative cave regions and direct steering | Author traversable terrain/cave/navigation layouts and verify pathing/collisions and save positions before integrating; larger geometry/content work must preserve the tested survival loop |
+| P2 content | Incomplete equipment slots, quest failure/recovery content and balance | Add resource definitions, slot effects and crafting progression after per-instance equipment design; define retry/terminal quest failure policies and test each branch/ending rather than inventing unsupported story events |
+| P2 presentation | Full animation, species-specific motion, music/ambience and richer effects absent | Finish approved atlases/rigs and audio content, then bind to real states; tint/bob/held poses do not count as completed animation |
+| P2 usability/performance | Cutout-aware/repositionable controls, effect tiers and sustained telemetry incomplete | Extend shared visual/hit geometry and safe areas; profile native GPU/thermal behavior before choosing batching/quality tiers. Text scaling and three desktop window-size checks are implemented, not full mobile accessibility certification |
+| P2 recovery | Historical directory discovery, per-instance equipment migration and packaged-resource failure UX need depth | Obtain authentic older save fixtures and add non-destructive migration; version-tagged modern fixtures are insufficient for claiming every historical save layout is supported |
+| P2 release process | Runtime notice bundle, action SHA pinning/dependency audit, store declarations and account eligibility | Complete attribution and supply-chain review, privacy/Data safety/store forms and release review; current CI secret scanning is not comprehensive SAST or dependency certification |
+
+Resolved in this stabilization pass: natural respawn no longer invalidates saves;
+failed quit-save retains the session; rest no longer falsely reports successful
+saving; current starter recipes survive legacy recipe lists; invalid enemy/quest
+states are rejected; enemy rewards are retained/persisted/retried at pickup capacity.
 
 ### Original milestone plan
 
