@@ -169,11 +169,10 @@ func _capture(filename: String, action: String, evidence: Dictionary, valid: boo
 		printerr("  valid=%s, action_name=%s, expected=%s" % [valid, _player.illustration.action_name, action])
 		_failed = true
 		return
-	print("GALLERY _capture: Valid, getting capture viewport image...")
-	# Update the capture viewport once and get the texture
-	_capture_viewport.render_target_update_mode = 1  # RENDER_TARGET_UPDATE_ONCE
+	print("GALLERY _capture: Valid, getting root viewport image...")
+	# Use the root viewport which has the player's camera rendering
 	await get_tree().process_frame
-	var image := _capture_viewport.get_texture().get_image()
+	var image := get_viewport().get_texture().get_image()
 	print("GALLERY _capture: Got image, saving...")
 	var error := image.save_webp(_folder.path_join(filename + ".webp"), true, 0.92)
 	if error != OK:

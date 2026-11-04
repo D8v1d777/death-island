@@ -5,8 +5,8 @@
 			"file": "01-wreckshore-walk.webp",
 			"moved_meters": 0.916666269302368,
 			"player_position": [
-				2.92499971389771,
-				0.000839304935652763,
+				2.74166631698608,
+				0.000839309592265636,
 				45
 			],
 			"sprite_frame": 6
@@ -19,7 +19,7 @@
 				0.000260420143604279,
 				8.80000019073486
 			],
-			"sprite_frame": 27,
+			"sprite_frame": 26,
 			"wood_after": 4,
 			"wood_before": 0
 		},
@@ -33,7 +33,7 @@
 				0.000260420143604279,
 				22
 			],
-			"sprite_frame": 18
+			"sprite_frame": 17
 		},
 		{
 			"action": "cook",
@@ -56,7 +56,7 @@
 				0.000260420143604279,
 				-39
 			],
-			"sprite_frame": 27
+			"sprite_frame": 26
 		},
 		{
 			"action": "build",

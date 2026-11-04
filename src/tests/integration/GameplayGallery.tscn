@@ -10,3 +10,12 @@ render_target_v_flip = true
 render_target_clear_mode = 1
 world_3d = NodePath("..")
 canvas_cull_mask = 1
+
+[node name="Camera3D" type="Camera3D" parent="CaptureViewport"]
+projection = 1
+size = 14.0
+fov = 65.0
+far = 100.0
+current = false
+position = Vector3(0, 1.5, 0)
+rotation = Vector3(-0.785398, 0, 0)
