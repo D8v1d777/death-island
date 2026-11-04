@@ -51,7 +51,10 @@ static func sprite(
 	node.hframes = hframes
 	node.vframes = SPRITE_META[key].vframes if SPRITE_META.has(key) else 1
 	node.pixel_size = height / float(texture.get_height())
-	node.rotation.x = CAMERA_PITCH
+	# Fix: rotate by +PI/4 so sprite faces camera (camera is at -PI/4 pitch)
+	# Camera forward: (0, -0.707, -0.707); sprite needs normal: (0, 0.707, 0.707)
+	# Default sprite faces +Z (0,0,1); rotate +45° around X to face camera
+	node.rotation.x = PI / 4.0
 	node.position = at + SCREEN_UP * height * 0.43
 	node.shaded = false
 	node.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
