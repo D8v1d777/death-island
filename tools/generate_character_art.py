@@ -1,19 +1,47 @@
 #!/usr/bin/env python3
 """
 Image Generation Pipeline for Death Island Character Artwork
-Uses Replicate API directly via HTTP requests
+
+Provider-independent character art generation with support for:
+- Manual: Import pre-generated images from local directory (zero API)
+- ComfyUI: Local/remote ComfyUI HTTP API (optional, no API key)
+- Replicate: Cloud API (optional, requires API token)
+
+Usage:
+    # Manual provider (zero API) - import browser-generated images
+    python3 tools/generate_character_art.py --provider manual --character annie --input ./my_artwork/annie
+
+    # ComfyUI provider (local server)
+    python3 tools/generate_character_art.py --provider comfyui --character annie --comfyui-url http://192.168.1.100:8188
+
+    # Replicate provider (cloud API)
+    python3 tools/generate_character_art.py --provider replicate --character annie --api-token $REPLICATE_API_TOKEN
 """
 
 import os
 import sys
-import json
-import time
-import base64
-import requests
+import argparse
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
-import argparse
+
+# Add tools directory to path for provider imports
+sys.path.insert(0, str(Path(__file__).parent))
+
+from art_providers import (
+    ProviderRegistry,
+    create_manual_provider,
+    create_comfyui_provider,
+    create_replicate_provider,
+    BaseArtProvider,
+    GenerationResult,
+    ProviderConfig
+)
+
+from PIL import Image, ImageDraw
+
 
 @dataclass
 class CharacterSpec:
@@ -28,176 +56,41 @@ class CharacterSpec:
             self.views = ["front", "three_quarter", "side", "rear"]
 
 
-class ReplicateClient:
-    """Direct HTTP client for Replicate API"""
-
-    def __init__(self, api_token: str):
-        self.api_token = api_token
-        self.base_url = "https://api.replicate.com/v1"
-        self.headers = {
-            "Authorization": f"Token {api_token}",
-            "Content-Type": "application/json"
-        }
-
-    def create_prediction(self, model: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a prediction"""
-        url = f"{self.base_url}/predictions"
-        payload = {
-            "version": model,
-            "input": input_data
-        }
-        response = requests.post(url, headers=self.headers, json=payload)
-        response.raise_for_status()
-        return response.json()
-
-    def get_prediction(self, prediction_id: str) -> Dict[str, Any]:
-        """Get prediction status"""
-        url = f"{self.base_url}/predictions/{prediction_id}"
-        response = requests.get(url, headers=self.headers)
-        response.raise_for_status()
-        return response.json()
-
-    def wait_for_completion(self, prediction_id: str, timeout: int = 300, poll_interval: int = 5) -> Dict[str, Any]:
-        """Wait for prediction to complete"""
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            result = self.get_prediction(prediction_id)
-            status = result.get("status")
-            if status == "succeeded":
-                return result
-            elif status == "failed":
-                raise Exception(f"Prediction failed: {result.get('error', 'Unknown error')}")
-            elif status == "canceled":
-                raise Exception("Prediction was canceled")
-            time.sleep(poll_interval)
-        raise TimeoutError(f"Prediction timed out after {timeout} seconds")
-
-    def generate_image(self, model: str, input_data: Dict[str, Any], timeout: int = 300) -> List[str]:
-        """Generate image and return output URLs"""
-        prediction = self.create_prediction(model, input_data)
-        result = self.wait_for_completion(prediction["id"], timeout)
-        return result.get("output", [])
-
-
-def encode_image_to_base64(image_path: str) -> str:
-    """Encode image to base64 string"""
-    with open(image_path, "rb") as f:
-        return base64.b64encode(f.read()).decode("utf-8")
-
-
-def download_image(url: str, output_path: str) -> bool:
-    """Download image from URL"""
-    try:
-        response = requests.get(url, stream=True, timeout=60)
-        response.raise_for_status()
-        with open(output_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        return True
-    except Exception as e:
-        print(f"Failed to download {url}: {e}")
-        return False
-
-
-class CharacterArtPipeline:
-    """Pipeline for generating character artwork from reference images"""
-
-    def __init__(self, api_token: str):
-        self.client = ReplicateClient(api_token)
-        # Using Stable Diffusion XL or similar for character generation
-        # Model versions from Replicate
-        self.models = {
-            "sdxl": "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-            "flux": "black-forest-labs/flux-schnell:987739f9e2e9d3e5e5c5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5e5",
-        }
-
-    def generate_character_view(
-        self,
-        reference_path: str,
-        view: str,
-        character_name: str,
-        character_description: str,
-        output_dir: str,
-        model: str = "flux"
-    ) -> Optional[str]:
-        """Generate a single character view"""
-
-        # Build prompt based on view and character description
-        view_prompts = {
-            "front": "full body front view, standing pose, facing camera directly",
-            "three_quarter": "full body three-quarter view, 45 degree angle, facing slightly right",
-            "side": "full body side profile view, facing right",
-            "rear": "full body rear view, back facing camera"
-        }
-
-        view_prompt = view_prompts.get(view, view_prompts["front"])
-
-        # Reference image as base64 for img2img
-        reference_b64 = encode_image_to_base64(reference_path)
-
-        # Build prompt
-        prompt = (
-            f"{character_description}, {view_prompt}, "
-            "2.5D isometric game character sprite, pixel art style, "
-            "transparent background, clean edges, game-ready asset, "
-            "consistent lighting, orthographic projection, "
-            "high quality, detailed, professional game art"
-        )
-
-        negative_prompt = (
-            "background, watermark, text, logo, label, frame, border, "
-            "low quality, blurry, distorted, deformed, ugly, "
-            "duplicate, multiple characters, cropped, cut off, "
-            "shadow on ground, perspective distortion"
-        )
-
-        input_data = {
-            "prompt": prompt,
-            "negative_prompt": negative_prompt,
-            "image": f"data:image/jpeg;base64,{reference_b64}",
-            "strength": 0.7,
-            "num_inference_steps": 30,
-            "guidance_scale": 7.5,
-            "num_outputs": 1,
-        }
-
-        try:
-            print(f"Generating {character_name} {view} view...")
-            output_urls = self.client.generate_image(self.models[model], input_data)
-
-            if output_urls:
-                output_filename = f"{character_name.lower()}_{view}.png"
-                output_path = os.path.join(output_dir, output_filename)
-                if download_image(output_urls[0], output_path):
-                    print(f"  Saved to {output_path}")
-                    return output_path
-            return None
-        except Exception as e:
-            print(f"Error generating {view} view: {e}")
-            return None
-
-    def generate_all_views(
-        self,
-        spec: CharacterSpec,
-        model: str = "flux"
-    ) -> Dict[str, str]:
-        """Generate all views for a character"""
-        os.makedirs(spec.output_dir, exist_ok=True)
-
-        results = {}
-        for view in spec.views:
-            result = self.generate_character_view(
-                spec.reference_path,
-                view,
-                spec.name,
-                spec.description,
-                spec.output_dir,
-                model
-            )
-            if result:
-                results[view] = result
-
-        return results
+# Character specifications
+CHARACTERS = {
+    "annie": CharacterSpec(
+        name="Annie",
+        reference_path="src/assets/illustrated/ANNIE_PRODUCTION_CHARACTER_BIBLE.jpg",
+        description=(
+            "young female survivor, blonde hair, youthful face, "
+            "survival outfit with practical clothing, "
+            "slim build, determined expression, "
+            "post-apocalyptic island survivor aesthetic"
+        ),
+        output_dir="generated_art/annie"
+    ),
+    "ellie": CharacterSpec(
+        name="Ellie",
+        reference_path="src/assets/illustrated/ELLIE_PRODUCTION_CHARACTER_BIBLE.jpg",
+        description=(
+            "young female survivor, dark hair, wearing glasses, "
+            "olive green tank top, blue jeans, "
+            "practical accessories, athletic build, "
+            "intelligent resourceful look, "
+            "post-apocalyptic island survivor aesthetic"
+        ),
+        output_dir="generated_art/ellie"
+    ),
+    "marie": CharacterSpec(
+        name="Marie",
+        reference_path="src/assets/illustrated/MARIE_PRODUCTION_CHARACTER_BIBLE.jpg",
+        description=(
+            "female survivor, original reference identity, "
+            "post-apocalyptic island survivor aesthetic"
+        ),
+        output_dir="generated_art/marie"
+    ),
+}
 
 
 def create_verification_spritesheet(
@@ -217,8 +110,6 @@ def create_verification_spritesheet(
     - Frames 4-7: walk (and dodge)
     - Frames 8-11: run (and attack_light, attack_heavy, gather, craft, hurt, death)
     """
-    from PIL import Image, ImageDraw, ImageFont
-
     views_order = ["front", "three_quarter", "side", "rear"]
     images = []
 
@@ -289,8 +180,6 @@ def create_animation_spritesheet(
     - Frames 4-7: walk (4 frames)
     - Frames 8-11: run (4 frames) - shared with attack_light, attack_heavy, gather, craft, hurt, death
     """
-    from PIL import Image
-
     combined_width = frame_size * 12
     combined = Image.new("RGBA", (combined_width, frame_size), (0, 0, 0, 0))
 
@@ -303,7 +192,6 @@ def create_animation_spritesheet(
             img = img.resize((frame_size, frame_size), Image.Resampling.LANCZOS)
             combined.paste(img, (frame_index * frame_size, 0))
         else:
-            # Transparent placeholder
             ph = Image.new("RGBA", (frame_size, frame_size), (0, 0, 0, 0))
             combined.paste(ph, (frame_index * frame_size, 0))
         frame_index += 1
@@ -336,93 +224,224 @@ def create_animation_spritesheet(
     return output_path
 
 
+def copy_to_game_assets(spritesheet_path: str, character_name: str, is_verification: bool = True) -> str:
+    """Copy spritesheet to game assets directory."""
+    game_assets_dir = "src/assets/illustrated/combined"
+    os.makedirs(game_assets_dir, exist_ok=True)
+
+    suffix = "_VERIFICATION" if is_verification else ""
+    game_filename = f"character_{character_name.lower()}_combined{suffix}.png"
+    game_path = os.path.join(game_assets_dir, game_filename)
+
+    shutil.copy2(spritesheet_path, game_path)
+    print(f"Copied to game assets: {game_path}")
+    return game_path
+
+
+def run_godot_import() -> bool:
+    """Run Godot import to process new textures."""
+    try:
+        result = subprocess.run(
+            ["godot", "--headless", "--path", "src", "--import"],
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+        if result.returncode == 0:
+            print("Godot import completed successfully")
+            return True
+        else:
+            print(f"Godot import failed: {result.stderr}")
+            return False
+    except subprocess.TimeoutExpired:
+        print("Godot import timed out")
+        return False
+    except Exception as e:
+        print(f"Godot import error: {e}")
+        return False
+
+
+def create_provider(args) -> BaseArtProvider:
+    """Create provider instance based on command line arguments."""
+    provider_name = args.provider.lower()
+
+    if provider_name == "manual":
+        if not args.input:
+            raise ValueError("Manual provider requires --input directory")
+        return create_manual_provider(input_dir=args.input)
+
+    elif provider_name == "comfyui":
+        return create_comfyui_provider(
+            comfyui_url=args.comfyui_url,
+            workflow_path=args.workflow,
+            timeout=args.timeout
+        )
+
+    elif provider_name == "replicate":
+        if not args.api_token and not os.environ.get("REPLICATE_API_TOKEN"):
+            raise ValueError("Replicate provider requires --api-token or REPLICATE_API_TOKEN env var")
+        return create_replicate_provider(
+            api_token=args.api_token,
+            default_model=args.model
+        )
+
+    else:
+        raise ValueError(f"Unknown provider: {provider_name}. Available: {ProviderRegistry.list_providers()}")
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Generate character artwork from references")
-    parser.add_argument("--api-token", required=True, help="Replicate API token")
-    parser.add_argument("--character", choices=["annie", "ellie", "marie"], required=True)
-    parser.add_argument("--model", choices=["sdxl", "flux"], default="flux")
-    parser.add_argument("--output-dir", default="generated_art")
+    parser = argparse.ArgumentParser(
+        description="Generate character artwork for Death Island",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Manual provider (zero API) - import browser-generated images
+  python3 tools/generate_character_art.py --provider manual --character annie --input ./my_artwork/annie
+
+  # ComfyUI provider (local/remote server)
+  python3 tools/generate_character_art.py --provider comfyui --character annie --comfyui-url http://localhost:8188
+
+  # Replicate provider (cloud API)
+  python3 tools/generate_character_art.py --provider replicate --character annie --api-token $REPLICATE_API_TOKEN
+
+Providers:
+  manual    - Import pre-generated images from local directory (NO API KEY REQUIRED)
+  comfyui   - Generate via ComfyUI HTTP API (local/remote, no API key)
+  replicate - Generate via Replicate cloud API (requires API token)
+"""
+    )
+
+    # Provider selection
+    parser.add_argument("--provider", choices=["manual", "comfyui", "replicate"],
+                       default="manual", help="Generation provider (default: manual)")
+
+    # Character selection
+    parser.add_argument("--character", choices=["annie", "ellie", "marie"],
+                       help="Character to generate (required unless --list-providers)")
+
+    # Output directory
+    parser.add_argument("--output-dir", default="generated_art",
+                       help="Base output directory (default: generated_art)")
+
+    # Manual provider args
+    parser.add_argument("--input", help="Input directory for manual provider (required for manual)")
+
+    # ComfyUI provider args
+    parser.add_argument("--comfyui-url", default="http://127.0.0.1:8188",
+                       help="ComfyUI server URL (default: http://127.0.0.1:8188)")
+    parser.add_argument("--workflow", help="Path to ComfyUI workflow JSON")
+    parser.add_argument("--timeout", type=int, default=300,
+                       help="Generation timeout in seconds (default: 300)")
+
+    # Replicate provider args
+    parser.add_argument("--api-token", help="Replicate API token (or set REPLICATE_API_TOKEN env var)")
+    parser.add_argument("--model", choices=["flux", "sdxl"], default="flux",
+                       help="Replicate model to use (default: flux)")
+
+    # General options
+    parser.add_argument("--skip-import", action="store_true",
+                       help="Skip Godot import step")
+    parser.add_argument("--list-providers", action="store_true",
+                       help="List available providers and exit")
 
     args = parser.parse_args()
 
-    # Character specifications
-    characters = {
-        "annie": CharacterSpec(
-            name="Annie",
-            reference_path="src/assets/illustrated/ANNIE_PRODUCTION_CHARACTER_BIBLE.jpg",
-            description=(
-                "young female survivor, blonde hair, youthful face, "
-                "survival outfit with practical clothing, "
-                "slim build, determined expression, "
-                "post-apocalyptic island survivor aesthetic"
-            ),
-            output_dir=f"{args.output_dir}/annie"
-        ),
-        "ellie": CharacterSpec(
-            name="Ellie",
-            reference_path="src/assets/illustrated/ELLIE_PRODUCTION_CHARACTER_BIBLE.jpg",
-            description=(
-                "young female survivor, dark hair, wearing glasses, "
-                "olive green tank top, blue jeans, "
-                "practical accessories, athletic build, "
-                "intelligent resourceful look, "
-                "post-apocalyptic island survivor aesthetic"
-            ),
-            output_dir=f"{args.output_dir}/ellie"
-        ),
-        "marie": CharacterSpec(
-            name="Marie",
-            reference_path="",  # Need to find original reference
-            description=(
-                "female survivor, original reference identity, "
-                "post-apocalyptic island survivor aesthetic"
-            ),
-            output_dir=f"{args.output_dir}/marie"
-        ),
-    }
+    # List providers and exit
+    if args.list_providers:
+        print("Available providers:")
+        availability = ProviderRegistry.check_provider_availability()
+        for name, status in availability.items():
+            print(f"  {name}: {status}")
+        return
 
-    spec = characters[args.character]
+    # Get character spec
+    if args.character not in CHARACTERS:
+        print(f"ERROR: Unknown character: {args.character}")
+        sys.exit(1)
 
+    spec = CHARACTERS[args.character]
+    spec.output_dir = f"{args.output_dir}/{args.character}"
+
+    # Validate reference image exists
     if not os.path.exists(spec.reference_path):
         print(f"ERROR: Reference image not found: {spec.reference_path}")
         if args.character == "marie":
             print("Marie's original reference is not available in the repository.")
+            print("Expected: src/assets/illustrated/MARIE_PRODUCTION_CHARACTER_BIBLE.jpg")
             print("Please provide the original user-supplied Marie reference image.")
         sys.exit(1)
 
-    pipeline = CharacterArtPipeline(args.api_token)
-    results = pipeline.generate_all_views(spec, args.model)
-
-    if results:
-        # Create VERIFICATION spritesheet (static phase - 4 views in idle slots)
-        spritesheet = create_verification_spritesheet(
-            results, args.character, args.output_dir
-        )
-
-        # Copy to game assets directory (with VERIFICATION suffix for clarity)
-        game_assets_dir = "src/assets/illustrated/combined"
-        os.makedirs(game_assets_dir, exist_ok=True)
-
-        import shutil
-        game_path = os.path.join(game_assets_dir, f"character_{args.character}_combined_VERIFICATION.png")
-        shutil.copy2(spritesheet, game_path)
-        print(f"Copied to game assets: {game_path}")
-
-        # Run Godot import
-        import subprocess
-        subprocess.run(["godot", "--headless", "--path", "src", "--import"], capture_output=True)
-        print("Godot import completed")
-        print()
-        print("=== NEXT STEPS ===")
-        print("1. Run Godot and verify character in-game:")
-        print("   - Camera-facing (rotation.x = -45°)")
-        print("   - Scale/foot anchoring (pixel_size = height/texture_height)")
-        print("   - Visibility in beach/jungle lighting")
-        print("2. Only after visual approval, proceed to genuine animation generation")
-        print("3. For production: generate 12 unique animation frames and use create_animation_spritesheet()")
-    else:
-        print("No views generated successfully")
+    # Create provider
+    try:
+        provider = create_provider(args)
+    except ValueError as e:
+        print(f"ERROR: {e}")
         sys.exit(1)
+
+    # Validate provider config
+    valid, error = provider.validate_config()
+    if not valid:
+        print(f"ERROR: Provider configuration invalid: {error}")
+        sys.exit(1)
+
+    # Check provider availability
+    if not provider.is_available():
+        print(f"WARNING: Provider '{provider.name}' reports as not available.")
+        print("This may be expected (e.g., ComfyUI server not running).")
+        if args.provider != "manual":
+            response = input("Continue anyway? [y/N]: ")
+            if response.lower() != 'y':
+                sys.exit(1)
+
+    print(f"Using provider: {provider.name}")
+    print(f"Character: {spec.name}")
+    print(f"Reference: {spec.reference_path}")
+    print(f"Output dir: {spec.output_dir}")
+    print(f"Views: {spec.views}")
+    print()
+
+    # Generate views
+    try:
+        result: GenerationResult = provider.generate_views(
+            reference_path=spec.reference_path,
+            character_name=spec.name,
+            character_description=spec.description,
+            views=spec.views,
+            output_dir=spec.output_dir,
+            model=args.model if hasattr(args, 'model') else "flux"
+        )
+    except Exception as e:
+        print(f"Generation failed: {e}")
+        sys.exit(1)
+
+    if not result.success:
+        print(f"Generation failed: {result.error}")
+        sys.exit(1)
+
+    print(f"Successfully generated {len(result.view_paths)} views")
+    print(f"Provider metadata: {result.metadata}")
+    print()
+
+    # Create verification spritesheet
+    spritesheet = create_verification_spritesheet(
+        result.view_paths, args.character, spec.output_dir
+    )
+
+    # Copy to game assets
+    copy_to_game_assets(spritesheet, args.character, is_verification=True)
+
+    # Run Godot import
+    if not args.skip_import:
+        run_godot_import()
+
+    print()
+    print("=== NEXT STEPS ===")
+    print("1. Run Godot and verify character in-game:")
+    print("   - Camera-facing (rotation.x = -45°)")
+    print("   - Scale/foot anchoring (pixel_size = height/texture_height)")
+    print("   - Visibility in beach/jungle lighting")
+    print("2. Only after visual approval, proceed to genuine animation generation")
+    print("3. For production: generate 12 unique animation frames and use create_animation_spritesheet()")
 
 
 if __name__ == "__main__":

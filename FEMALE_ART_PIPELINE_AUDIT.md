@@ -2,51 +2,44 @@
 
 **Date**: 2026-11-04  
 **Branch**: `feature/female-character-integration`  
-**Commit**: e48a0a9 (NPC infrastructure complete)  
-**Status**: AUDIT - No paid generation performed
+**Latest Commit**: `b9079aa` (chore: add female character art pipeline script and audit)  
+**Status**: AUDIT UPDATED — Script fixed and committed. Provider architecture not yet implemented.
 
 ---
 
-## 1. Script Verification
+## 1. Script Verification (UPDATED)
 
 | Item | Value |
 |------|-------|
-| **Script Path** | `/root/death-island-art-overhaul/generate_character_art.py` |
-| **Git Status** | `??` (untracked) |
-| **git status --short** | `?? generate_character_art.py` |
-| **Lines of Code** | 328 |
+| **Script Path** | `/root/death-island-art-overhaul/tools/generate_character_art.py` |
+| **Git Status** | ✅ Committed in `b9079aa` |
+| **git status --short** | (clean) |
+| **Lines of Code** | ~430 |
 | **Dependencies** | requests, pillow (system), argparse |
 
-**Note**: Script is NOT committed. Per instructions, it should be committed to a tracked tools directory (e.g., `tools/`) but WITHOUT credentials, `.env`, or tokens.
+**Note**: Script is now in `tools/` directory, committed without credentials.
 
 ---
 
-## 2. Current Atlas-Assembly Logic Analysis
+## 2. Current Atlas-Assembly Logic Analysis (FIXED)
 
-### The Bug: `create_spritesheet_from_views()` (lines 203-243)
+### Previous Bug (now fixed)
+The old `create_spritesheet_from_views()` incorrectly duplicated 4 directional views 3× each to fill 12 frames.
 
-```python
-# Current (WRONG) logic:
-views_order = ["front", "three_quarter", "side", "rear"]
-# 4 views × 3 duplicates each = 12 frames
-for i in range(12):
-    view_idx = i // 3  # 3 frames per view
-    combined.paste(images[view_idx], (i * frame_size, 0))
-```
+### Current Implementation (FIXED in `b9079aa`)
 
-**Resulting Frame Layout (WRONG):**
-| Frame | Source View | Problem |
-|-------|-------------|---------|
-| 0-2 | Front | 3 copies of same static front view |
-| 3-5 | Three-quarter | 3 copies of same static 3/4 view |
-| 6-8 | Side | 3 copies of same static side view |
-| 9-11 | Rear | 3 copies of same static rear view |
+**`create_verification_spritesheet()`** — Static verification phase:
+- Frames 0-3: 4 genuine directional views (front, three_quarter, side, rear) → idle slots
+- Frames 4-7: Orange placeholders labeled "WALK 1/4" through "WALK 4/4" → walk slots  
+- Frames 8-11: Orange placeholders labeled "RUN 1/4" through "RUN 4/4" → run/attack/gather/craft/hurt/death slots
 
-**Why This Breaks Animation**: The animation system expects **3 distinct animation rows** (idle, walk, run), each with 4 unique frames. The current script produces **4 camera angles** duplicated, not animation frames.
+**`create_animation_spritesheet()`** — Production phase (for future genuine animation):
+- Accepts 12 unique frames organized as: `{"idle": [4 paths], "walk": [4 paths], "run": [4 paths]}`
+- Maps to correct 12-frame layout matching `AnimationSetResource.create_survivor_set()`
 
 ---
 
-## 3. Explicit 12-Frame Mapping Table
+## 3. Explicit 12-Frame Mapping Table (UNCHANGED - CORRECT)
 
 ### Required Frame Layout (per `AnimationSetResource.create_survivor_set()` and `IllustratedArt.get_animation_set()`)
 
@@ -81,9 +74,11 @@ for i in range(12):
 | **hurt** | 8-11 | run, attack_light, attack_heavy, gather, craft, death |
 | **death** | 8-11 | run, attack_light, attack_heavy, gather, craft, hurt |
 
+**Critical**: Four directional illustrations are NOT four animation frames. The verification spritesheet makes this explicit with orange placeholders.
+
 ---
 
-## 4. Genuine Animation Artwork Required
+## 4. Genuine Animation Artwork Required (UNCHANGED)
 
 ### Static Character Artwork (Phase 1 - Current Mission)
 For **visual verification only** (single static pose per character):
@@ -110,14 +105,11 @@ For **visual verification only** (single static pose per character):
 | Dodge | 4* | Shares walk frames |
 | Craft | 4* | Shares run frames |
 
-**Total unique frames per character: 12** (idle 4 + walk 4 + run 4)  
-*All other actions currently reuse run/walk/idle frames per animation set design*
-
-**If genuine unique animations are desired for attack/gather/hurt/death**: +28 frames/character (4 each × 7 actions)
+**Total unique frames per character: 12** (idle 4 + walk 4 + run 4)
 
 ---
 
-## 5. Asset Isolation Verification
+## 5. Asset Isolation Verification (UNCHANGED - VERIFIED)
 
 | Asset | Path | Status |
 |-------|------|--------|
@@ -134,11 +126,11 @@ For **visual verification only** (single static pose per character):
 
 ---
 
-## 6. Annie-First Workflow Compliance
+## 6. Annie-First Workflow Compliance (ENFORCED)
 
 | Step | Requirement | Status |
 |------|-------------|--------|
-| 1 | Generate Annie static artwork only | ⏳ Pending (script fix + token) |
+| 1 | Generate Annie static artwork only | ⏳ Pending (requires provider implementation + token/backend) |
 | 2 | Verify in Godot gameplay | ⏳ Pending |
 | 3 | Camera-facing (rotation.x = -PI/4) | ⏳ Verify after import |
 | 4 | Scale/foot anchoring (pixel_size = height/texture_height) | ⏳ Verify after import |
@@ -149,7 +141,7 @@ For **visual verification only** (single static pose per character):
 
 ---
 
-## 7. Marie Blocker
+## 7. Marie Blocker (UNCHANGED)
 
 **Exact Blocker**: "Original user-supplied unnamed female NPC reference (Marie)" — **no such file exists in the repository**.
 
@@ -158,75 +150,44 @@ For **visual verification only** (single static pose per character):
 - `find /root/death-island-art-overhaul -iname "*Marie*"` → Same
 - `grep -r "Marie" --include="*.jpg" --include="*.png" --include="*.svg"` → No original reference
 
+**Expected filename**: `src/assets/illustrated/MARIE_PRODUCTION_CHARACTER_BIBLE.jpg`
+
 **Action Required**: User must provide the original Marie reference image. Do not invent/replace.
 
 ---
 
-## 8. Remaining Blockers (No API Token Required Validation)
+## 8. Remaining Blockers (UPDATED)
 
 | Blocker | Type | Resolution |
 |---------|------|------------|
-| **generate_character_art.py not committed** | Process | Commit to `tools/` directory |
-| **Script atlas-assembly logic is wrong** | Code | Fix `create_spritesheet_from_views()` to produce 12 animation frames, not 4 views × 3 |
-| **No Replicate API token** | External | User must provide `REPLICATE_API_TOKEN` |
+| **Replicate API mandatory** | Architecture | Implement provider abstraction (Phase B) |
+| **No zero-API workflow** | Feature | Implement manual provider (Phase C) |
+| **No ComfyUI integration** | Feature | Implement optional ComfyUI provider (Phase D) |
+| **No Replicate API token** | External | Optional after provider abstraction |
 | **Marie reference missing** | Asset | User must provide original reference |
-| **Annie/Ellie static verification not done** | Validation | Requires fixed script + token + Godot import |
+| **Annie/Ellie static verification not done** | Validation | Requires working provider + Godot import |
 | **Godot import pipeline untested for new assets** | Integration | Test after first generation |
+| **Tests not updated for new architecture** | Testing | Add provider/asset validation tests |
+| **Documentation not updated** | Docs | Create ART_GENERATION_SETUP.md |
 
 ---
 
-## 9. Required Script Fix
+## 9. Implementation Status Summary
 
-### `create_spritesheet_from_views()` must be rewritten to:
-
-1. **Accept 12 genuine animation frames** (not 4 views)
-2. **Or**: Generate animation frames via img2img with specific prompts per frame
-3. **Or**: For static verification only — create a "verification spritesheet" with 4 views in frames 0-3 and duplicate to fill 12 frames **with clear labeling**
-
-### Minimal Fix for Static Verification Phase:
-
-```python
-def create_verification_spritesheet(view_paths, character_name, output_dir, frame_size=128):
-    """Create spritesheet for STATIC VERIFICATION ONLY.
-    Places 4 views in frames 0-3, marks remaining frames as 'TODO: animation'.
-    """
-    views_order = ["front", "three_quarter", "side", "rear"]
-    images = []
-    for view in views_order:
-        if view in view_paths:
-            img = Image.open(view_paths[view]).convert("RGBA")
-            img = img.resize((frame_size, frame_size), Image.Resampling.LANCZOS)
-        else:
-            img = Image.new("RGBA", (frame_size, frame_size), (255, 0, 255, 128))  # Magenta = missing
-        images.append(img)
-    
-    combined = Image.new("RGBA", (frame_size * 12, frame_size), (0, 0, 0, 0))
-    for i in range(12):
-        if i < 4:
-            combined.paste(images[i], (i * frame_size, 0))
-        else:
-            # Frames 4-11: placeholder for animation frames
-            ph = Image.new("RGBA", (frame_size, frame_size), (255, 165, 0, 128))  # Orange = animation TODO
-            # Add frame number text if PIL supports it
-            combined.paste(ph, (i * frame_size, 0))
-    
-    output_path = os.path.join(output_dir, f"character_{character_name.lower()}_combined_VERIFICATION.png")
-    combined.save(output_path)
-    return output_path
-```
+| Component | Status |
+|-----------|--------|
+| NPC Infrastructure (Annie/Ellie/Marie) | ✅ Complete (`e48a0a9`) |
+| Art.tres texture registration | ✅ Complete |
+| Script committed to `tools/` | ✅ Complete (`b9079aa`) |
+| Atlas-assembly logic fixed | ✅ Complete (verification + production functions) |
+| Provider abstraction | ⏳ **Phase B - Next** |
+| Manual provider (zero-API) | ⏳ **Phase C - Next** |
+| ComfyUI provider | ⏳ **Phase D - Next** |
+| Replicate provider (optional) | ⏳ **Phase B/C - Refactor existing** |
+| Annie production spec | ⏳ **Phase E - Next** |
+| Test suite updates | ⏳ **Phase F - Next** |
+| Documentation | ⏳ **Phase G - Next** |
 
 ---
 
-## 10. Next Steps (No Paid Requests)
-
-1. **Commit** `generate_character_art.py` to `tools/generate_character_art.py`
-2. **Fix** `create_spritesheet_from_views()` per §9 above
-3. **Wait** for user to provide `REPLICATE_API_TOKEN`
-4. **Wait** for user to provide Marie's original reference
-5. **Generate** Annie static artwork only (4 views)
-6. **Import** to Godot, verify in-game (screenshots)
-7. **Only after Annie approval**: proceed to Ellie, then Marie, then genuine animations
-
----
-
-**Audit Complete** — No billable API calls made. No placeholder replacement. No merge.
+**Audit Updated** — Reflects actual repository state as of commit `b9079aa`. Ready for Phase B implementation.

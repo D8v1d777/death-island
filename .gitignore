@@ -77,6 +77,10 @@ __pycache__/
 venv/
 env/
 
+# Generated artwork (not committed until approved)
+generated_art/
+src/assets/illustrated/combined/*_VERIFICATION.png
+
 # Rust
 target/
 Cargo.lock
