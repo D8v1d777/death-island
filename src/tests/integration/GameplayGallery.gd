@@ -7,6 +7,7 @@ var _world: IslandWorld
 var _evidence: Array[Dictionary] = []
 var _folder := ""
 var _failed := false
+@onready var _capture_viewport: SubViewport = get_node("CaptureViewport")
 
 
 func _ready() -> void:
@@ -16,28 +17,38 @@ func _ready() -> void:
 	if _folder.is_empty():
 		_folder = "user://gallery"
 	DirAccess.make_dir_recursive_absolute(_folder)
+
 	call_deferred("_run")
 
 
 func _run() -> void:
+	print("GALLERY: Starting test...")
 	seed(20261030)
+	print("GALLERY: Calling new_game...")
 	GameManagerGlobal.new_game()
+	print("GALLERY: Waiting for loading...")
 	while GameManagerGlobal.is_loading:
 		await get_tree().process_frame
+	print("GALLERY: Loading done, getting player...")
 	_player = GameManagerGlobal.get_player()
 	_world = GameManagerGlobal.world
+	print("GALLERY: Player: %s, World: %s" % [_player, _world])
 	_player.inventory_comp.add_item("stone_axe", 1)
 	_player.inventory_comp.add_item("iron_blade", 1)
+	print("GALLERY: Placing at wreckshore...")
 	await _place(Vector3(1, 0.1, 45))
+	print("GALLERY: Placed, moving right...")
 	var initial := _player.global_position
 	Input.action_press("move_right")
 	await _frames(10)
+	print("GALLERY: Capturing walk...")
 	await _capture(
 		"01-wreckshore-walk",
 		"walk",
 		{"moved_meters": _player.global_position.distance_to(initial)},
 		_player.global_position.distance_to(initial) > 0.3
 	)
+	print("GALLERY: Walk capture done")
 	Input.action_release("move_right")
 
 	await _place(Vector3(-18, 0.1, 8.8))
@@ -140,14 +151,30 @@ func _place(at: Vector3) -> void:
 
 
 func _capture(filename: String, action: String, evidence: Dictionary, valid: bool) -> void:
-	for index in 4:
+	print("GALLERY _capture: Starting for %s" % filename)
+	# Wait for the action to start, with timeout
+	var max_wait := 10
+	var found := false
+	for index in max_wait:
 		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
+		if _player.illustration.action_name == action:
+			found = true
+			break
+	if not found:
+		# Give it one more frame
+		await get_tree().process_frame
+	print("GALLERY _capture: Frames awaited, checking validity...")
 	if not valid or _player.illustration.action_name != action:
 		printerr("FAIL: gallery action was not performed: " + filename)
+		printerr("  valid=%s, action_name=%s, expected=%s" % [valid, _player.illustration.action_name, action])
 		_failed = true
 		return
-	var image := get_viewport().get_texture().get_image()
+	print("GALLERY _capture: Valid, getting capture viewport image...")
+	# Update the capture viewport once and get the texture
+	_capture_viewport.render_target_update_mode = 1  # RENDER_TARGET_UPDATE_ONCE
+	await get_tree().process_frame
+	var image := _capture_viewport.get_texture().get_image()
+	print("GALLERY _capture: Got image, saving...")
 	var error := image.save_webp(_folder.path_join(filename + ".webp"), true, 0.92)
 	if error != OK:
 		printerr("FAIL: gallery image could not be saved: " + filename)
@@ -158,3 +185,4 @@ func _capture(filename: String, action: String, evidence: Dictionary, valid: boo
 	evidence["sprite_frame"] = _player.illustration.body.frame
 	evidence["player_position"] = StateValidation.array3(_player.global_position)
 	_evidence.append(evidence)
+	print("GALLERY _capture: Done for %s" % filename)

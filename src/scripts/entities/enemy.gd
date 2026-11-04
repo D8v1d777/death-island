@@ -18,6 +18,8 @@ var _knockback := Vector3.ZERO
 var _respawn_timer := 0.0
 var _body: Sprite3D
 var _title: Label3D
+var _animation_controller
+var _prev_state := AIState.PATROL
 
 @onready var health_comp: HealthComponent = $HealthComponent
 @onready var visual: Node3D = $Visual
@@ -31,7 +33,10 @@ func _ready() -> void:
 	health_comp.current_health = enemy_definition.max_health
 	health_comp.died.connect(_on_died)
 	var height := 4.2 if enemy_definition.behavior == "guard" else 2.2
-	_body = IllustratedArt.sprite(visual, enemy_definition.enemy_id, height)
+
+	# Create appropriate animation set based on enemy type
+	var animation_set := _create_animation_set()
+	_body = IllustratedArt.sprite(visual, enemy_definition.enemy_id, height, Vector3.ZERO, animation_set)
 	IllustratedArt.shadow(visual, 2.2)
 	LowPoly.collision(
 		self, enemy_definition.body_size, Vector3(0, enemy_definition.body_size.y / 2, 0)
@@ -39,6 +44,16 @@ func _ready() -> void:
 	_title = LowPoly.label(
 		self, enemy_definition.display_name, IllustratedArt.SCREEN_UP * height, Color("eebc93")
 	)
+
+	# Get animation controller
+	for child in _body.get_children():
+		if child.get_class() == "AnimatedSpriteController":
+			_animation_controller = child
+			break
+
+	# Start idle animation
+	if _animation_controller:
+		_animation_controller.play("idle")
 
 
 func _physics_process(delta: float) -> void:
@@ -112,6 +127,9 @@ func _physics_process(delta: float) -> void:
 	if global_position.y < -5:
 		global_position = _home
 
+	# Sync animation with AI state
+	_sync_animation()
+
 
 func _set_color(color: Color) -> void:
 	_body.modulate = Color.WHITE if color == enemy_definition.tint else color
@@ -128,6 +146,11 @@ func _on_died() -> void:
 	collision_layer = 0
 	collision_mask = 0
 	QuestSystemGlobal.record_kill(enemy_definition.enemy_id)
+
+	# Play death animation before hiding
+	if _animation_controller:
+		_animation_controller.play("death")
+
 	for drop in enemy_definition.loot_table:
 		if randf() <= float(drop.chance):
 			GameManagerGlobal.world.spawn_pickup(
@@ -145,6 +168,10 @@ func _respawn() -> void:
 	collision_layer = 2
 	collision_mask = 25
 	_set_color(enemy_definition.tint)
+
+	# Reset to idle animation on respawn
+	if _animation_controller:
+		_animation_controller.play("idle")
 
 
 func get_state() -> AIState:
@@ -168,3 +195,72 @@ func deserialize(data: Dictionary) -> void:
 	visible = _state != AIState.DEAD
 	collision_layer = 2 if visible else 0
 	collision_mask = 25 if visible else 0
+
+	# Restore correct animation on load
+	if _animation_controller:
+		if _state == AIState.DEAD:
+			_animation_controller.play("death")
+		else:
+			_animation_controller.play("idle")
+
+
+func _create_animation_set() -> Resource:
+	var AnimClass = preload("res://scripts/data/AnimationSetResource.gd")
+	var res = AnimClass.new()
+	match enemy_definition.behavior:
+		"guard":
+			res.default_fps = 6.0
+			res.animations = {
+				"idle": {"start_frame": 0, "frame_count": 6, "loop": true, "fps": 3.0},
+				"walk": {"start_frame": 6, "frame_count": 8, "loop": true, "fps": 8.0},
+				"windup": {"start_frame": 14, "frame_count": 6, "loop": false, "fps": 5.0},
+				"attack": {"start_frame": 20, "frame_count": 8, "loop": false, "fps": 10.0},
+				"recover": {"start_frame": 28, "frame_count": 4, "loop": false, "fps": 4.0},
+				"hurt": {"start_frame": 32, "frame_count": 4, "loop": false, "fps": 10.0},
+				"death": {"start_frame": 36, "frame_count": 8, "loop": false, "fps": 4.0},
+			}
+		"ambush":
+			res.default_fps = 8.0
+			res.animations = {
+				"idle": {"start_frame": 0, "frame_count": 4, "loop": true, "fps": 3.0},
+				"walk": {"start_frame": 4, "frame_count": 8, "loop": true, "fps": 10.0},
+				"windup": {"start_frame": 12, "frame_count": 4, "loop": false, "fps": 6.0},
+				"attack": {"start_frame": 16, "frame_count": 5, "loop": false, "fps": 14.0},
+				"recover": {"start_frame": 21, "frame_count": 3, "loop": false, "fps": 5.0},
+				"hurt": {"start_frame": 24, "frame_count": 3, "loop": false, "fps": 12.0},
+				"death": {"start_frame": 27, "frame_count": 6, "loop": false, "fps": 5.0},
+			}
+		"charge", "circle", _:
+			res.default_fps = 8.0
+			res.animations = {
+				"idle": {"start_frame": 0, "frame_count": 4, "loop": true, "fps": 4.0},
+				"walk": {"start_frame": 4, "frame_count": 6, "loop": true, "fps": 10.0},
+				"run": {"start_frame": 10, "frame_count": 6, "loop": true, "fps": 12.0},
+				"windup": {"start_frame": 16, "frame_count": 3, "loop": false, "fps": 8.0},
+				"attack": {"start_frame": 19, "frame_count": 4, "loop": false, "fps": 16.0},
+				"recover": {"start_frame": 23, "frame_count": 3, "loop": false, "fps": 6.0},
+				"hurt": {"start_frame": 26, "frame_count": 3, "loop": false, "fps": 12.0},
+				"death": {"start_frame": 29, "frame_count": 6, "loop": false, "fps": 6.0},
+			}
+	return res
+
+
+func _sync_animation() -> void:
+	if not _animation_controller or _state == _prev_state:
+		return
+
+	_prev_state = _state
+
+	match _state:
+		AIState.IDLE, AIState.PATROL:
+			_animation_controller.play("idle")
+		AIState.CHASE:
+			_animation_controller.play("walk")
+		AIState.WINDUP:
+			_animation_controller.play("windup")
+		AIState.ATTACK:
+			_animation_controller.play("attack")
+		AIState.RECOVER:
+			_animation_controller.play("recover")
+		AIState.DEAD:
+			_animation_controller.play("death")

@@ -1,0 +1,571 @@
+{
+  "characters": {
+    "beige": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 10
+      },
+      "run": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 12
+      },
+      "attack": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 16
+      },
+      "gather": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 8
+      },
+      "drink": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "craft": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "dodge": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 20
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 12
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "green": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 10
+      },
+      "run": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 12
+      },
+      "attack": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 16
+      },
+      "gather": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 8
+      },
+      "drink": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "craft": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "dodge": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 20
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 12
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "pink": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 10
+      },
+      "run": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 12
+      },
+      "attack": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 16
+      },
+      "gather": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 8
+      },
+      "drink": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "craft": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "dodge": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 20
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 12
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "purple": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 10
+      },
+      "run": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 12
+      },
+      "attack": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 16
+      },
+      "gather": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 8
+      },
+      "drink": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "craft": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "dodge": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 20
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 12
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "yellow": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 10
+      },
+      "run": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 12
+      },
+      "attack": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 16
+      },
+      "gather": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 8
+      },
+      "drink": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "craft": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "dodge": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 20
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 12
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    }
+  },
+  "enemies": {
+    "barnacle": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "attack": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 6
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "bee": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "fly": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "fish_blue": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "swim": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "fly": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "fly": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "frog": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "jump": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 6
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "ladybug": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "fly": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "mouse": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "slime_normal": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "slime_fire": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "slime_spike": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "snail": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "walk": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    },
+    "worm_normal": {
+      "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "move": {
+        "start_frame": 0,
+        "frame_count": 2,
+        "fps": 8
+      },
+      "hurt": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      },
+      "death": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "fps": 6
+      }
+    }
+  },
+  "tiles": {
+    "tiles": [
+      "block_brown",
+      "block_green",
+      "block_grey",
+      "block_yellow",
+      "brick_brown",
+      "brick_grey",
+      "bricks_brown",
+      "bricks_grey",
+      "bridge",
+      "bridge_logs",
+      "bush",
+      "cactus",
+      "chain",
+      "conveyor",
+      "door_closed",
+      "door_open",
+      "fence",
+      "fence_broken",
+      "fireball",
+      "flag_blue_a",
+      "flag_red_a",
+      "flag_yellow_a",
+      "grass_center",
+      "grass_left",
+      "grass_right",
+      "ladder",
+      "liquid_lava",
+      "liquid_water",
+      "sign",
+      "sign_exit",
+      "spikes",
+      "spring"
+    ]
+  }
+}

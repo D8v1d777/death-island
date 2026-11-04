@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="AnimationSetResource" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/data/AnimationSetResource.gd" id="script"]
+[resource]
+script = ExtResource("script")
+
+animations = {
+    "idle": {
+        "start_frame": 0,
+        "frame_count": 1,
+        "loop": true,
+        "fps": 6.0
+    },
+    "walk": {
+        "start_frame": 1,
+        "frame_count": 2,
+        "loop": true,
+        "fps": 8.0
+    },
+    "fly": {
+        "start_frame": 3,
+        "frame_count": 1,
+        "loop": true,
+        "fps": 8.0
+    },
+    "hurt": {
+        "start_frame": 4,
+        "frame_count": 1,
+        "loop": false,
+        "fps": 6.0
+    },
+    "death": {
+        "start_frame": 5,
+        "frame_count": 1,
+        "loop": false,
+        "fps": 6.0
+    },
+}
+default_fps = 8.0

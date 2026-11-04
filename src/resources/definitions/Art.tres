@@ -1,7 +1,22 @@
 [gd_resource type="Resource" script_class="ArtDefinition" load_steps=34 format=3]
 [ext_resource type="Script" path="res://scripts/data/ArtDefinition.gd" id="script"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Survivor.svg" id="survivor"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Mara.svg" id="mara"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_beige_combined.png" id="survivor"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_pink_combined.png" id="mara"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_slime_normal_combined.png" id="wild_boar"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_worm_normal_combined.png" id="wolf"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_fish_blue_combined.png" id="spider"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_slime_fire_combined.png" id="guardian"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Shadow.svg" id="shadow"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Spring.svg" id="spring"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Crate.svg" id="crate"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Signpost.svg" id="sign"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Beacon.svg" id="beacon"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Wreck.svg" id="wreck"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Sand.svg" id="sand"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Grass.svg" id="grass"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Stone.svg" id="stone"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Foam.svg" id="foam"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/Shelter.svg" id="shelter"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Palm.svg" id="palm"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Tree.svg" id="tree"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Rock.svg" id="rock"]
@@ -17,37 +32,22 @@
 [ext_resource type="Texture2D" path="res://assets/illustrated/Wall.svg" id="wall"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Roof.svg" id="roof"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/Door.svg" id="door"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Boar.svg" id="boar"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Wolf.svg" id="wolf"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Spider.svg" id="spider"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Guardian.svg" id="guardian"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Shadow.svg" id="shadow"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Spring.svg" id="spring"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Crate.svg" id="crate"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Signpost.svg" id="sign"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Beacon.svg" id="beacon"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Wreck.svg" id="wreck"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Sand.svg" id="sand"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Grass.svg" id="grass"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Stone.svg" id="stone"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Foam.svg" id="foam"]
-[ext_resource type="Texture2D" path="res://assets/illustrated/Shelter.svg" id="shelter"]
 [resource]
 script = ExtResource("script")
 textures = {
 "survivor":ExtResource("survivor"),"mara":ExtResource("mara"),
+"wild_boar":ExtResource("wild_boar"),"wolf":ExtResource("wolf"),"spider":ExtResource("spider"),
+"guardian":ExtResource("guardian"),"shadow":ExtResource("shadow"),
+"water":ExtResource("spring"),"scrap":ExtResource("crate"),"sign":ExtResource("sign"),
+"beacon":ExtResource("beacon"),"wreck":ExtResource("wreck"),
+"sand":ExtResource("sand"),"grass":ExtResource("grass"),"stone":ExtResource("stone"),
+"foam":ExtResource("foam"),"shelter":ExtResource("shelter"),
 "palm":ExtResource("palm"),"tree":ExtResource("tree"),"rock":ExtResource("rock"),
 "ore":ExtResource("ore"),"crystal":ExtResource("crystal"),"wood":ExtResource("wood"),
 "fern":ExtResource("fern"),"berries":ExtResource("berries"),
 "campfire":ExtResource("campfire"),"workbench":ExtResource("workbench"),
 "forge":ExtResource("forge"),"foundation":ExtResource("foundation"),
-"wall":ExtResource("wall"),"roof":ExtResource("roof"),"door":ExtResource("door"),
-"wild_boar":ExtResource("boar"),"wolf":ExtResource("wolf"),"spider":ExtResource("spider"),
-"guardian":ExtResource("guardian"),"shadow":ExtResource("shadow"),
-"water":ExtResource("spring"),"scrap":ExtResource("crate"),"sign":ExtResource("sign"),
-"beacon":ExtResource("beacon"),"wreck":ExtResource("wreck"),
-"sand":ExtResource("sand"),"grass":ExtResource("grass"),"stone":ExtResource("stone"),
-"foam":ExtResource("foam"),"shelter":ExtResource("shelter")
+"wall":ExtResource("wall"),"roof":ExtResource("roof"),"door":ExtResource("door")
 }
 decor = Array[Dictionary]([
 {"art":"palm","position":Vector3(-14,0,30),"height":7.5},

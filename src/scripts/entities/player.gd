@@ -226,12 +226,14 @@ func _reconcile_equipment() -> void:
 
 
 func _on_died() -> void:
+	illustration.play_death()
 	GameManagerGlobal.open_menu("death")
 
 
 func _on_damaged(_amount: float, _source: Node) -> void:
 	InputManagerGlobal.vibrate(80, 0.7)
 	AudioManagerGlobal.play_ui_sfx("hurt")
+	illustration.play_hurt()
 
 
 func serialize() -> Dictionary:
