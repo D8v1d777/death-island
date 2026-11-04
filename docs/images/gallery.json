@@ -19,7 +19,7 @@
 				0.000260420143604279,
 				8.80000019073486
 			],
-			"sprite_frame": 26,
+			"sprite_frame": 8,
 			"wood_after": 4,
 			"wood_before": 0
 		},
@@ -33,7 +33,7 @@
 				0.000260420143604279,
 				22
 			],
-			"sprite_frame": 17
+			"sprite_frame": 9
 		},
 		{
 			"action": "cook",
@@ -44,7 +44,7 @@
 				0.000833609083201736,
 				35
 			],
-			"sprite_frame": 35
+			"sprite_frame": 8
 		},
 		{
 			"action": "gather",
@@ -56,7 +56,7 @@
 				0.000260420143604279,
 				-39
 			],
-			"sprite_frame": 26
+			"sprite_frame": 8
 		},
 		{
 			"action": "build",
@@ -67,7 +67,7 @@
 				39
 			],
 			"shelter_parts_built": 4,
-			"sprite_frame": 35
+			"sprite_frame": 8
 		}
 	],
 	"engine": "4.3-stable (official)",

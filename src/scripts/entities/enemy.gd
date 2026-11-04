@@ -211,36 +211,36 @@ func _create_animation_set() -> Resource:
 		"guard":
 			res.default_fps = 6.0
 			res.animations = {
-				"idle": {"start_frame": 0, "frame_count": 6, "loop": true, "fps": 3.0},
-				"walk": {"start_frame": 6, "frame_count": 8, "loop": true, "fps": 8.0},
-				"windup": {"start_frame": 14, "frame_count": 6, "loop": false, "fps": 5.0},
-				"attack": {"start_frame": 20, "frame_count": 8, "loop": false, "fps": 10.0},
-				"recover": {"start_frame": 28, "frame_count": 4, "loop": false, "fps": 4.0},
-				"hurt": {"start_frame": 32, "frame_count": 4, "loop": false, "fps": 10.0},
-				"death": {"start_frame": 36, "frame_count": 8, "loop": false, "fps": 4.0},
+				"idle": {"start_frame": 0, "frame_count": 2, "loop": true, "fps": 3.0},
+				"walk": {"start_frame": 2, "frame_count": 3, "loop": true, "fps": 8.0},
+				"windup": {"start_frame": 0, "frame_count": 2, "loop": false, "fps": 5.0},
+				"attack": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 10.0},
+				"recover": {"start_frame": 0, "frame_count": 2, "loop": false, "fps": 4.0},
+				"hurt": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 10.0},
+				"death": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 4.0},
 			}
 		"ambush":
 			res.default_fps = 8.0
 			res.animations = {
-				"idle": {"start_frame": 0, "frame_count": 4, "loop": true, "fps": 3.0},
-				"walk": {"start_frame": 4, "frame_count": 8, "loop": true, "fps": 10.0},
-				"windup": {"start_frame": 12, "frame_count": 4, "loop": false, "fps": 6.0},
-				"attack": {"start_frame": 16, "frame_count": 5, "loop": false, "fps": 14.0},
-				"recover": {"start_frame": 21, "frame_count": 3, "loop": false, "fps": 5.0},
-				"hurt": {"start_frame": 24, "frame_count": 3, "loop": false, "fps": 12.0},
-				"death": {"start_frame": 27, "frame_count": 6, "loop": false, "fps": 5.0},
+				"idle": {"start_frame": 0, "frame_count": 2, "loop": true, "fps": 3.0},
+				"walk": {"start_frame": 2, "frame_count": 3, "loop": true, "fps": 10.0},
+				"windup": {"start_frame": 0, "frame_count": 2, "loop": false, "fps": 6.0},
+				"attack": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 14.0},
+				"recover": {"start_frame": 0, "frame_count": 2, "loop": false, "fps": 5.0},
+				"hurt": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 12.0},
+				"death": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 5.0},
 			}
 		"charge", "circle", _:
 			res.default_fps = 8.0
 			res.animations = {
-				"idle": {"start_frame": 0, "frame_count": 4, "loop": true, "fps": 4.0},
-				"walk": {"start_frame": 4, "frame_count": 6, "loop": true, "fps": 10.0},
-				"run": {"start_frame": 10, "frame_count": 6, "loop": true, "fps": 12.0},
-				"windup": {"start_frame": 16, "frame_count": 3, "loop": false, "fps": 8.0},
-				"attack": {"start_frame": 19, "frame_count": 4, "loop": false, "fps": 16.0},
-				"recover": {"start_frame": 23, "frame_count": 3, "loop": false, "fps": 6.0},
-				"hurt": {"start_frame": 26, "frame_count": 3, "loop": false, "fps": 12.0},
-				"death": {"start_frame": 29, "frame_count": 6, "loop": false, "fps": 6.0},
+				"idle": {"start_frame": 0, "frame_count": 2, "loop": true, "fps": 4.0},
+				"walk": {"start_frame": 2, "frame_count": 3, "loop": true, "fps": 10.0},
+				"run": {"start_frame": 2, "frame_count": 3, "loop": true, "fps": 12.0},
+				"windup": {"start_frame": 0, "frame_count": 2, "loop": false, "fps": 8.0},
+				"attack": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 16.0},
+				"recover": {"start_frame": 0, "frame_count": 2, "loop": false, "fps": 6.0},
+				"hurt": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 12.0},
+				"death": {"start_frame": 2, "frame_count": 3, "loop": false, "fps": 6.0},
 			}
 	return res
 
