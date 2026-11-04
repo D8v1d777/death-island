@@ -6,6 +6,10 @@ const ISLAND = preload("res://resources/definitions/Island.tres")
 const RESOURCE_SCENE = preload("res://scenes/ResourceNode.tscn")
 const ENEMY_SCENE = preload("res://scenes/Enemy.tscn")
 const PICKUP_SCENE = preload("res://scenes/ItemPickup.tscn")
+const ANNIE_SCENE = preload("res://scripts/entities/Annie.gd")
+const ELLIE_SCENE = preload("res://scripts/entities/Ellie.gd")
+const MARIE_SCENE = preload("res://scripts/entities/Marie.gd")
+const COMPANION_SCENE = preload("res://scripts/entities/Companion.gd")
 const DAY_SECONDS := 1440.0
 const MAX_OBJECTS := 64
 const HIT_POOL_SIZE := 12
@@ -132,10 +136,22 @@ func _build_content() -> void:
 		enemy.position = spawn.position
 		add_child(enemy)
 		_enemies[spawn.id] = enemy
-	var npc := Companion.new()
+	var npc := COMPANION_SCENE.new()
 	npc.name = "Mara"
 	npc.position = Vector3(4, 0, 32)
 	add_child(npc)
+	var annie := ANNIE_SCENE.new()
+	annie.name = "Annie"
+	annie.position = Vector3(-8, 0, 28)
+	add_child(annie)
+	var ellie := ELLIE_SCENE.new()
+	ellie.name = "Ellie"
+	ellie.position = Vector3(12, 0, 20)
+	add_child(ellie)
+	var marie := MARIE_SCENE.new()
+	marie.name = "Marie"
+	marie.position = Vector3(-15, 0, 5)
+	add_child(marie)
 	var beacon := Landmark.new()
 	beacon.position = Vector3(0, 0, 43)
 	add_child(beacon)

@@ -1,7 +1,10 @@
-[gd_resource type="Resource" script_class="ArtDefinition" load_steps=34 format=3]
+[gd_resource type="Resource" script_class="ArtDefinition" load_steps=40 format=3]
 [ext_resource type="Script" path="res://scripts/data/ArtDefinition.gd" id="script"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_beige_combined.png" id="survivor"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_pink_combined.png" id="mara"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_annie_combined.png" id="annie"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_ellie_combined.png" id="ellie"]
+[ext_resource type="Texture2D" path="res://assets/illustrated/combined/character_marie_combined.png" id="marie"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_frog_combined.png" id="wild_boar"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_mouse_combined.png" id="wolf"]
 [ext_resource type="Texture2D" path="res://assets/illustrated/combined/enemy_ladybug_combined.png" id="spider"]
@@ -36,6 +39,7 @@
 script = ExtResource("script")
 textures = {
 "survivor":ExtResource("survivor"),"mara":ExtResource("mara"),
+"annie":ExtResource("annie"),"ellie":ExtResource("ellie"),"marie":ExtResource("marie"),
 "wild_boar":ExtResource("wild_boar"),"wolf":ExtResource("wolf"),"spider":ExtResource("spider"),
 "guardian":ExtResource("guardian"),"shadow":ExtResource("shadow"),
 "water":ExtResource("spring"),"scrap":ExtResource("crate"),"sign":ExtResource("sign"),

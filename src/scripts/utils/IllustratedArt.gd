@@ -90,7 +90,7 @@ static func get_animation_set(key: String):
 	var AnimClass = preload("res://scripts/data/AnimationSetResource.gd")
 	var res = AnimClass.new()
 	match key:
-		"survivor", "mara":
+		"survivor", "mara", "annie", "ellie", "marie":
 			res.default_fps = 8.0
 			res.animations = {
 				"idle": {"start_frame": 0, "frame_count": 4, "loop": true, "fps": 6.0},
